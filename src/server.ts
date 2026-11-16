@@ -12,7 +12,7 @@ import { registerSubmitTools } from "./tools/submit.js";
 
 export function createServer(): McpServer {
   const server = new McpServer(
-    { name: "unisinos-moodle", version: "0.5.0" },
+    { name: "unisinos-moodle", version: "0.6.0" },
     {
       instructions:
         "Ferramentas para o Moodle da Unisinos (www.moodle.unisinos.br) em nome do aluno logado. " +

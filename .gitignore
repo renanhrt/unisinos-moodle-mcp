@@ -7,3 +7,6 @@ dist/
 .playwright/
 cookies*.json
 downloads/
+build/
+releases/
+*.mcpb
