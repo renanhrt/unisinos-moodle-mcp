@@ -15,24 +15,32 @@ npm run whoami    # confere se o token salvo funciona
 
 O token fica em `~/.unisinos-moodle-mcp/credentials.json`, fora do repositório. Para sair, apague esse arquivo.
 
-### Claude Code
+Depois de mudar o código, rode `npm run build` e reinicie o Claude: os dois usam o `dist/` desta pasta.
 
-O repositório já traz um [.mcp.json](.mcp.json). Abra o Claude Code nesta pasta e aprove o servidor `unisinos-moodle`.
+### Claude Code (todas as pastas)
 
-### Claude Desktop
+```bash
+claude mcp add --scope user unisinos-moodle -- node C:\caminho\para\unisinos-moodle-mcp\dist\index.js
+```
 
-Em `%APPDATA%\Claude\claude_desktop_config.json`:
+Confira com `claude mcp get unisinos-moodle` (deve aparecer "Connected").
+
+### Claude Desktop (chat)
+
+Acrescente `mcpServers` ao `claude_desktop_config.json` (menu **Configurações → Desenvolvedor → Editar configuração**). Na instalação pela Microsoft Store o arquivo fica em `%LOCALAPPDATA%\Claude-Data\<pasta do app>\claude_desktop_config.json`; na instalação comum, em `%APPDATA%\Claude\`. Mantenha o resto do arquivo como está:
 
 ```json
 {
   "mcpServers": {
     "unisinos-moodle": {
-      "command": "node",
+      "command": "C:\\caminho\\para\\node.exe",
       "args": ["C:\\caminho\\para\\unisinos-moodle-mcp\\dist\\index.js"]
     }
   }
 }
 ```
+
+Feche o Claude Desktop por completo (inclusive o ícone perto do relógio) e abra de novo.
 
 ### Ferramentas disponíveis (v0.5)
 

@@ -1,6 +1,6 @@
 {
   "name": "unisinos-moodle-mcp",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "Servidor MCP para o Moodle da Unisinos",
   "main": "dist/index.js",
   "scripts": {
