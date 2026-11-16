@@ -133,8 +133,9 @@ Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **promp
 ## Roadmap
 
 1. ~~**Descoberta**: identificar a URL do Moodle e o tipo de login~~ ✅ SSO Office365, mobile WS habilitado.
-2. ✅ **Login**: script Playwright que captura o token do app (falta testar com uma conta real).
+2. ✅ **Login**: script Playwright que captura o token do app (testado com conta real em 2026-11-16; Moodle 4.5.8, 444 funções liberadas).
 3. ✅ **MVP somente leitura**: perfil, disciplinas, conteúdos, prazos, notas e tarefas.
 4. **Arquivos**: download e leitura de PDFs/slides para a IA resumir.
 5. **Escrita com confirmação**: entregas, fóruns, mensagens.
+   `core_files_upload` **não** está liberada para o token, mas `uploadfiles = 1`: o envio de arquivos tem que usar `/webservice/upload.php` (como o app faz) e depois `mod_assign_save_submission`.
 6. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.

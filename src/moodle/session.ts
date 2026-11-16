@@ -1,5 +1,6 @@
 import type { SiteInfo } from "../auth/login.js";
 import { loadCredentials } from "../auth/store.js";
+import { MOODLE_LANG } from "../config.js";
 import { MoodleClient } from "./client.js";
 
 export class NotLoggedInError extends Error {
@@ -22,7 +23,7 @@ export function getSession(): Promise<Session> {
     cached = (async () => {
       const creds = await loadCredentials();
       if (!creds) throw new NotLoggedInError();
-      const client = new MoodleClient({ baseUrl: creds.siteUrl, token: creds.token });
+      const client = new MoodleClient({ baseUrl: creds.siteUrl, token: creds.token, lang: MOODLE_LANG });
       const site = await client.call<SiteInfo>("core_webservice_get_site_info");
       return { client, site };
     })();

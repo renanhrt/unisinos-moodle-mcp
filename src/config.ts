@@ -7,6 +7,9 @@ export const MOODLE_URL = (process.env.MOODLE_URL ?? "https://www.moodle.unisino
 /** Serviço de Web Services usado pelo app oficial do Moodle. */
 export const MOODLE_SERVICE = process.env.MOODLE_SERVICE ?? "moodle_mobile_app";
 
+/** Idioma das mensagens devolvidas pelo Moodle (ex.: "Adicionar envio"). */
+export const MOODLE_LANG = process.env.MOODLE_LANG ?? "pt_br";
+
 /** Fuso usado para mostrar datas. */
 export const TIMEZONE = process.env.MOODLE_TIMEZONE ?? "America/Sao_Paulo";
 

@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { compact, formatDate, htmlToText } from "../moodle/format.js";
+import { compact, formatDate, htmlToText, shortCourseName } from "../moodle/format.js";
 import { getEnrolledCourses } from "./courses.js";
 import { READ_ONLY, runTool } from "./helpers.js";
 
@@ -27,7 +27,7 @@ interface UserGrades {
 function clean(v: string | undefined): string | null {
   if (!v) return null;
   const t = htmlToText(v);
-  return t === "-" || t === "" ? null : t;
+  return /^[-–—]?$/.test(t) ? null : t;
 }
 
 export function registerGradeTools(server: McpServer): void {
@@ -88,7 +88,7 @@ export function registerGradeTools(server: McpServer): void {
         ]);
         const names = new Map(courses.map((c) => [c.id, c.fullname]));
         return overview.grades.map((g) =>
-          compact({ courseid: g.courseid, course: names.get(g.courseid), grade: clean(g.grade) ?? "sem nota" }),
+          compact({ courseid: g.courseid, course: shortCourseName(names.get(g.courseid)), grade: clean(g.grade) ?? "sem nota" }),
         );
       }),
   );

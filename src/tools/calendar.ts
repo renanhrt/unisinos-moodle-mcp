@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { compact, formatDate, nowUnix } from "../moodle/format.js";
+import { compact, formatDate, nowUnix, shortCourseName } from "../moodle/format.js";
 import { READ_ONLY, runTool } from "./helpers.js";
 
 interface ActionEvent {
@@ -65,7 +65,7 @@ export function registerCalendarTools(server: McpServer): void {
               event: e.name,
               type: e.modulename,
               instanceId: e.instance,
-              course: e.course?.fullname,
+              course: shortCourseName(e.course?.fullname),
               courseid: e.course?.id,
               todo: e.action?.actionable ? e.action.name : null,
               url: e.action?.url ?? e.url,

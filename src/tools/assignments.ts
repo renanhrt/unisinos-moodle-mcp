@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { compact, formatBytes, formatDate, htmlToText, nowUnix } from "../moodle/format.js";
+import { compact, formatBytes, formatDate, htmlToText, nowUnix, shortCourseName } from "../moodle/format.js";
 import { READ_ONLY, runTool } from "./helpers.js";
 
 interface Assignment {
@@ -129,7 +129,7 @@ export function registerAssignmentTools(server: McpServer): void {
         return data.courses
           .map((c) => ({
             courseid: c.id,
-            course: c.fullname,
+            course: shortCourseName(c.fullname),
             assignments: c.assignments
               .filter((a) => !onlyOpen || !a.duedate || (a.cutoffdate || a.duedate) > now)
               .sort((a, b) => (a.duedate || Infinity) - (b.duedate || Infinity))

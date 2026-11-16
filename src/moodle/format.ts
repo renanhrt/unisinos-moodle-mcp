@@ -27,6 +27,7 @@ for (const [suffix, mark] of Object.entries(ACCENTS)) {
 export function htmlToText(html: string | null | undefined, maxLength?: number): string {
   if (!html) return "";
   let text = html
+    .replace(/\r\n?/g, "\n")
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, "\n")
@@ -77,6 +78,61 @@ export function compact<T extends Record<string, unknown>>(obj: T): Partial<T> {
       ([, v]) => v !== null && v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0),
     ),
   ) as Partial<T>;
+}
+
+export interface UnisinosCourseName {
+  semester: string;
+  name: string;
+  code: string;
+  schedule?: string;
+  group?: string;
+  teacher?: string;
+  campus?: string;
+}
+
+const LOWER_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
+
+function titleCaseIfShouting(s: string): string {
+  if (s !== s.toUpperCase()) return s;
+  return s
+    .toLowerCase()
+    .split(" ")
+    .map((w, i) => (i > 0 && LOWER_WORDS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ");
+}
+
+/**
+ * Separa o nome longo das disciplinas da Unisinos:
+ * "2026/2 - Álgebra Linear - GR10001-00001-100001 - 10BSEMI - PROFESSOR - Unisinos São Leopoldo - Sede"
+ * "2026/2 - Projeto ... - GR10002-00002-100002 - QUI - 19:30 - 20SSEMI - Professora"
+ * Devolve null se o nome não seguir esse padrão.
+ */
+export function parseUnisinosCourseName(fullname: string): UnisinosCourseName | null {
+  const parts = fullname.split(" - ").map((p) => p.trim());
+  if (!/^\d{4}\/\d$/.test(parts[0] ?? "")) return null;
+  const codeIdx = parts.findIndex((p) => /^[A-Z]{2}\d+-\d+-\d+$/.test(p));
+  if (codeIdx < 2) return null;
+
+  const rest = parts.slice(codeIdx + 1);
+  const groupIdx = rest.findIndex((p) => /^\d+[A-Z]+$/.test(p));
+  const schedule = groupIdx > 0 ? rest.slice(0, groupIdx).join(" ") : undefined;
+  const afterGroup = groupIdx >= 0 ? rest.slice(groupIdx + 1) : rest;
+
+  return compact({
+    semester: parts[0]!,
+    name: parts.slice(1, codeIdx).join(" - "),
+    code: parts[codeIdx]!,
+    schedule,
+    group: groupIdx >= 0 ? rest[groupIdx] : undefined,
+    teacher: afterGroup[0] ? titleCaseIfShouting(afterGroup[0]) : undefined,
+    campus: afterGroup.length > 1 ? afterGroup.slice(1).join(" - ") : undefined,
+  }) as UnisinosCourseName;
+}
+
+/** Nome curto da disciplina (sem semestre, código, turma etc.). */
+export function shortCourseName(fullname: string | undefined): string | undefined {
+  if (!fullname) return fullname;
+  return parseUnisinosCourseName(fullname)?.name ?? fullname;
 }
 
 export function nowUnix(): number {

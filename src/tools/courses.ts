@@ -1,7 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { MoodleClient } from "../moodle/client.js";
-import { compact, formatBytes, formatDate, htmlToText, nowUnix } from "../moodle/format.js";
+import {
+  compact,
+  formatBytes,
+  formatDate,
+  htmlToText,
+  nowUnix,
+  parseUnisinosCourseName,
+} from "../moodle/format.js";
 import { READ_ONLY, runTool } from "./helpers.js";
 
 export interface EnrolledCourse {
@@ -110,19 +117,25 @@ export function registerCourseTools(server: McpServer): void {
         const courses = (await getEnrolledCourses(client, site.userid))
           .filter((c) => filter === "all" || classifyCourse(c, now) === filter)
           .sort((a, b) => (b.lastaccess ?? 0) - (a.lastaccess ?? 0));
-        return courses.map((c) =>
-          compact({
+        return courses.map((c) => {
+          const parsed = parseUnisinosCourseName(c.fullname);
+          return compact({
             id: c.id,
-            name: c.fullname,
-            shortname: c.shortname,
+            name: parsed?.name ?? c.fullname,
+            teacher: parsed?.teacher,
+            schedule: parsed?.schedule,
+            group: parsed?.group,
+            semester: parsed?.semester,
+            code: parsed?.code,
+            campus: parsed?.campus,
             status: classifyCourse(c, now),
             progress: typeof c.progress === "number" ? `${Math.round(c.progress)}%` : null,
             start: formatDate(c.startdate),
             end: formatDate(c.enddate),
             lastAccess: formatDate(c.lastaccess),
             favourite: c.isfavourite || null,
-          }),
-        );
+          });
+        });
       }),
   );
 

@@ -63,6 +63,8 @@ export interface MoodleClientOptions {
   token: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Idioma das strings devolvidas (moodlewssettinglang), ex.: "pt_br". */
+  lang?: string;
 }
 
 export class MoodleClient {
@@ -70,17 +72,20 @@ export class MoodleClient {
   private readonly token: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
+  private readonly lang?: string;
 
   constructor(opts: MoodleClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
     this.token = opts.token;
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.timeoutMs = opts.timeoutMs ?? 30_000;
+    this.lang = opts.lang;
   }
 
   /** Chama uma função de Web Service e devolve o JSON já checado por erro. */
   async call<T = unknown>(wsfunction: string, params: Record<string, MoodleParamValue> = {}): Promise<T> {
-    const url = `${this.baseUrl}/webservice/rest/server.php?moodlewsrestformat=json&wsfunction=${encodeURIComponent(wsfunction)}`;
+    const lang = this.lang ? `&moodlewssettinglang=${encodeURIComponent(this.lang)}` : "";
+    const url = `${this.baseUrl}/webservice/rest/server.php?moodlewsrestformat=json${lang}&wsfunction=${encodeURIComponent(wsfunction)}`;
     const body = new URLSearchParams([["wstoken", this.token], ...flattenParams(params)]);
 
     const res = await this.fetchImpl(url, {
