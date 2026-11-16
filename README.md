@@ -2,6 +2,60 @@
 
 Servidor MCP (Model Context Protocol) para o Moodle da Unisinos: permite que um assistente de IA (Claude Desktop, Claude Code etc.) consulte e opere o portal em nome do aluno.
 
+## Como usar
+
+Requisitos: Node 20+ e Microsoft Edge ou Google Chrome instalado.
+
+```bash
+npm install
+npm run build
+npm run login     # abre o navegador; entre com a conta Microsoft da Unisinos
+npm run whoami    # confere se o token salvo funciona
+```
+
+O token fica em `~/.unisinos-moodle-mcp/credentials.json`, fora do repositório. Para sair, apague esse arquivo.
+
+### Claude Code
+
+O repositório já traz um [.mcp.json](.mcp.json). Abra o Claude Code nesta pasta e aprove o servidor `unisinos-moodle`.
+
+### Claude Desktop
+
+Em `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "unisinos-moodle": {
+      "command": "node",
+      "args": ["C:\\caminho\\para\\unisinos-moodle-mcp\\dist\\index.js"]
+    }
+  }
+}
+```
+
+### Ferramentas disponíveis (v0.1, somente leitura)
+
+| Ferramenta | O que faz |
+|---|---|
+| `moodle_get_me` | quem está logado |
+| `moodle_list_courses` | disciplinas (atuais, passadas, futuras ou todas) |
+| `moodle_get_course_contents` | semanas, atividades, arquivos e status de conclusão |
+| `moodle_upcoming_deadlines` | prazos dos próximos dias, incluindo atrasados |
+| `moodle_get_grades` | boletim de uma disciplina, com comentários |
+| `moodle_grades_overview` | nota total de todas as disciplinas |
+| `moodle_list_assignments` | tarefas com datas de abertura, entrega e corte |
+| `moodle_get_assignment_status` | se já entregou, o que enviou, nota e feedback |
+
+Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?".
+
+### Desenvolvimento
+
+```bash
+npm test          # testes unitários e de integração (Moodle simulado)
+npm run dev       # servidor MCP direto do TypeScript
+```
+
 ## Ideia central
 
 O Moodle já tem uma **API oficial de Web Services** (`/webservice/rest/server.php`), usada pelo app **Moodle Mobile**. Se a Unisinos tem o app mobile habilitado, a gente reutiliza o mesmo serviço (`moodle_mobile_app`) com o token do próprio aluno. Isso dá acesso estável, rápido e dentro das permissões do aluno, sem precisar raspar HTML.
@@ -79,8 +133,8 @@ Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **promp
 ## Roadmap
 
 1. ~~**Descoberta**: identificar a URL do Moodle e o tipo de login~~ ✅ SSO Office365, mobile WS habilitado.
-2. **Login**: script Playwright que captura o token do app.
-3. **MVP somente leitura**: `get_me`, `list_courses`, `get_course_contents`, `upcoming_deadlines`, `get_grades`.
+2. ✅ **Login**: script Playwright que captura o token do app (falta testar com uma conta real).
+3. ✅ **MVP somente leitura**: perfil, disciplinas, conteúdos, prazos, notas e tarefas.
 4. **Arquivos**: download e leitura de PDFs/slides para a IA resumir.
 5. **Escrita com confirmação**: entregas, fóruns, mensagens.
 6. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "unisinos-moodle": {
+      "command": "node",
+      "args": ["dist/index.js"]
+    }
+  }
+}
