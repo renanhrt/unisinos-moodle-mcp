@@ -12,7 +12,56 @@ const ENTITIES: Record<string, string> = {
   hellip: "…",
   ordm: "º",
   ordf: "ª",
+  // símbolos comuns em enunciados de matemática
+  middot: "·",
+  times: "×",
+  divide: "÷",
+  plusmn: "±",
+  minus: "−",
+  le: "≤",
+  ge: "≥",
+  ne: "≠",
+  asymp: "≈",
+  equiv: "≡",
+  infin: "∞",
+  deg: "°",
+  sup1: "¹",
+  sup2: "²",
+  sup3: "³",
+  frac12: "½",
+  frac14: "¼",
+  frac34: "¾",
+  radic: "√",
+  sum: "∑",
+  prod: "∏",
+  int: "∫",
+  part: "∂",
+  nabla: "∇",
+  forall: "∀",
+  exist: "∃",
+  empty: "∅",
+  isin: "∈",
+  notin: "∉",
+  cap: "∩",
+  cup: "∪",
+  sub: "⊂",
+  sube: "⊆",
+  sup: "⊃",
+  supe: "⊇",
+  perp: "⊥",
+  rarr: "→",
+  larr: "←",
+  harr: "↔",
+  rArr: "⇒",
+  lArr: "⇐",
+  hArr: "⇔",
 };
+
+// Letras gregas: &alpha; &Delta; …
+for (const [i, name] of ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigmaf", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"].entries()) {
+  ENTITIES[name] = String.fromCodePoint(0x3b1 + i);
+  if (name !== "sigmaf") ENTITIES[name[0]!.toUpperCase() + name.slice(1)] = String.fromCodePoint(0x391 + i);
+}
 
 // Acentos usados em português: &aacute; &atilde; &ccedil; &Ecirc; ...
 const ACCENTS: Record<string, string> = { acute: "́", grave: "̀", tilde: "̃", circ: "̂", uml: "̈", cedil: "̧" };

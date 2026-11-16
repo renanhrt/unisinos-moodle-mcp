@@ -80,6 +80,13 @@ test("expõe as ferramentas e marca quais alteram algo", async () => {
     "moodle_list_discussions",
     "moodle_list_forums",
     "moodle_list_notifications",
+    "moodle_list_quizzes",
+    "moodle_quiz_answer",
+    "moodle_quiz_finish",
+    "moodle_quiz_next_page",
+    "moodle_quiz_questions",
+    "moodle_quiz_review",
+    "moodle_quiz_start",
     "moodle_read_conversation",
     "moodle_read_discussion",
     "moodle_read_file",
@@ -90,14 +97,14 @@ test("expõe as ferramentas e marca quais alteram algo", async () => {
     "moodle_submit_assignment",
     "moodle_upcoming_deadlines",
   ]);
-  const writes = ["moodle_create_discussion", "moodle_delete_forum_post", "moodle_download_file", "moodle_remove_submission", "moodle_reply_forum", "moodle_send_message", "moodle_submit_assignment"];
+  const writes = ["moodle_create_discussion", "moodle_delete_forum_post", "moodle_download_file", "moodle_quiz_answer", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_quiz_start", "moodle_remove_submission", "moodle_reply_forum", "moodle_send_message", "moodle_submit_assignment"];
   assert.deepEqual(tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort(), writes);
   assert.deepEqual(
     tools.filter((t) => t.annotations?.destructiveHint !== false).map((t) => t.name).sort(),
-    ["moodle_delete_forum_post", "moodle_remove_submission", "moodle_submit_assignment"],
+    ["moodle_delete_forum_post", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_remove_submission", "moodle_submit_assignment"],
   );
   // toda ferramenta que altera o Moodle explica o fluxo de confirmação
-  for (const t of tools.filter((x) => writes.includes(x.name) && x.name !== "moodle_download_file")) {
+  for (const t of tools.filter((x) => writes.includes(x.name) && !["moodle_download_file", "moodle_quiz_answer"].includes(x.name))) {
     assert.match(t.description ?? "", /DUAS ETAPAS/, t.name);
     assert.ok("confirmationCode" in ((t.inputSchema as { properties: object }).properties), t.name);
   }

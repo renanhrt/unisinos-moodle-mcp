@@ -34,7 +34,7 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 }
 ```
 
-### Ferramentas disponíveis (v0.4)
+### Ferramentas disponíveis (v0.5)
 
 | Ferramenta | O que faz |
 |---|---|
@@ -54,6 +54,9 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 | `moodle_reply_forum` / `moodle_create_discussion` / `moodle_delete_forum_post` | responder, criar tópico e apagar a própria mensagem — prévia + confirmação |
 | `moodle_list_conversations` / `moodle_read_conversation` / `moodle_search_people` | mensagens privadas e busca de professores/colegas |
 | `moodle_send_message` | envia mensagem (conversa existente, pessoa ou suas anotações pessoais) — prévia + confirmação |
+| `moodle_list_quizzes` | questionários: abertura/fechamento, tempo, tentativas usadas/permitidas, tentativa em andamento, nota |
+| `moodle_quiz_start` / `moodle_quiz_questions` / `moodle_quiz_answer` / `moodle_quiz_finish` | responder questionários pelo MCP, como no app oficial: abrir (prévia + confirmação), ver questões, marcar a resposta **que o aluno disser**, enviar (prévia + confirmação) |
+| `moodle_quiz_next_page` / `moodle_quiz_review` | avançar página em navegação sequencial (confirmação) e revisão de tentativas finalizadas (se o professor liberar) |
 | `moodle_download_file` | salva um arquivo em `~/Downloads/Moodle Unisinos/<pasta>` (mude com `MOODLE_DOWNLOAD_DIR`); não sobrescreve |
 
 Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?", "resuma os slides da última aula de Engenharia de Software", "baixe todos os PDFs de Álgebra".
@@ -65,6 +68,17 @@ Os arquivos só são baixados do próprio Moodle (`pluginfile.php` em www.moodle
 Entregar/remover envio, responder/criar/apagar no fórum e enviar mensagem usam o mesmo fluxo: a primeira chamada só gera uma **prévia** e um código; a ação só acontece quando a IA chama de novo com o código, depois da sua confirmação. O código é de uso único, vale 15 min, só vale para aquele tipo de ação e é recusado se qualquer detalhe mudar.
 
 Nos fóruns de Avisos (os únicos das disciplinas atuais) alunos não podem responder nem criar tópicos; as ferramentas detectam isso e bloqueiam antes de enviar.
+
+### Questionários
+
+O MCP funciona como o app oficial do Moodle: mostra as questões (texto, imagens, opções com letras) e marca **somente** a opção que você disser ("marca a b na questão 3"). A IA **não sugere, não resolve e não escolhe** respostas — essa regra está nas instruções do servidor e na descrição de cada ferramenta de questionário.
+
+- Abrir uma tentativa nova pede confirmação (gasta uma tentativa e inicia o cronômetro, se houver). Retomar uma tentativa em andamento não.
+- Pedidos ambíguos são recusados: se "1" puder ser a 1ª opção ou a opção com texto "1", pede a letra.
+- Navegação livre: lê todas as páginas. Navegação sequencial: só a página atual; avançar pede confirmação (não dá para voltar).
+- Enviar pede confirmação e avisa quantas questões estão sem resposta.
+- Regras que exigem navegador (senha, Safe Exam Browser etc.) são detectadas e o MCP manda usar o Moodle.
+- Tipos lidos: múltipla escolha (uma ou várias), verdadeiro/falso, resposta curta/numérica, associação/listas e redação em texto.
 
 ### Como funciona a entrega de tarefas
 
@@ -168,4 +182,5 @@ Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **promp
 5. ✅ **Entrega e remoção de envio** com prévia e confirmação (ciclo completo testado no Moodle real em 2026-11-16, na Etapa 3 do Projeto Extensionista: entrega de um PDF de teste e remoção logo em seguida).
 6. ✅ **Fóruns, mensagens e notificações** (envio de mensagem testado no Moodle real com uma anotação pessoal, apagada em seguida).
    `core_files_upload` **não** está liberada para o token, mas `uploadfiles = 1`: o envio de arquivos tem que usar `/webservice/upload.php` (como o app faz) e depois `mod_assign_save_submission`.
-7. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.
+7. ✅ **Questionários** (listagem e prévia testadas no Moodle real; abrir/marcar/enviar testados com Moodle simulado — o primeiro uso real valida o leitor de questões).
+8. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.

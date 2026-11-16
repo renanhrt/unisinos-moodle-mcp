@@ -6,6 +6,7 @@ import { registerFileTools } from "./tools/files.js";
 import { registerForumTools } from "./tools/forums.js";
 import { registerGradeTools } from "./tools/grades.js";
 import { registerMessageTools } from "./tools/messages.js";
+import { QUIZ_RULE, registerQuizTools } from "./tools/quiz.js";
 import { registerSubmitTools } from "./tools/submit.js";
 
 export function createServer(): McpServer {
@@ -15,7 +16,8 @@ export function createServer(): McpServer {
       instructions:
         "Ferramentas para o Moodle da Unisinos (www.moodle.unisinos.br) em nome do aluno logado. " +
         "Comece por moodle_list_courses para obter os ids das disciplinas. " +
-        "Datas estão no fuso de São Paulo. Para ler materiais (PDF, slides etc.) use moodle_read_file com o fileurl; para salvar no computador, moodle_download_file. Ferramentas que alteram o Moodle (entregar/remover envio, responder/criar/apagar no fórum, enviar mensagem) funcionam em duas etapas: prévia + confirmação explícita do aluno.",
+        "Datas estão no fuso de São Paulo. Para ler materiais (PDF, slides etc.) use moodle_read_file com o fileurl; para salvar no computador, moodle_download_file. Ferramentas que alteram o Moodle (entregar/remover envio, responder/criar/apagar no fórum, enviar mensagem) funcionam em duas etapas: prévia + confirmação explícita do aluno. " +
+        QUIZ_RULE,
     },
   );
   registerCourseTools(server);
@@ -26,6 +28,7 @@ export function createServer(): McpServer {
   registerSubmitTools(server);
   registerForumTools(server);
   registerMessageTools(server);
+  registerQuizTools(server);
   return server;
 }
 

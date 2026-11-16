@@ -10,12 +10,13 @@
     "dev": "tsx src/index.ts",
     "login": "tsx src/auth/login-cli.ts",
     "whoami": "tsx src/auth/whoami-cli.ts",
-    "test": "node --import tsx --test test/client.test.ts test/format.test.ts test/launch-token.test.ts test/files.test.ts test/server.test.ts test/submit.test.ts test/forums-messages.test.ts"
+    "test": "node --import tsx --test test/client.test.ts test/format.test.ts test/launch-token.test.ts test/files.test.ts test/server.test.ts test/submit.test.ts test/forums-messages.test.ts test/quiz.test.ts"
   },
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "fflate": "^0.8.3",
+    "node-html-parser": "^9.0.7",
     "playwright-core": "^1.65.1",
     "unpdf": "^1.7.0",
     "zod": "^4.6.7"
