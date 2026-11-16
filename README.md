@@ -1,194 +1,126 @@
-# unisinos-moodle-mcp
+# Moodle Unisinos para o Claude
 
-Servidor MCP (Model Context Protocol) para o Moodle da Unisinos: permite que um assistente de IA (Claude Desktop, Claude Code etc.) consulte e opere o portal em nome do aluno.
+<img src="assets/icon.png" alt="" width="96" align="right">
 
-## Como usar
+Servidor [MCP](https://modelcontextprotocol.io) que conecta o **Claude** ao **Moodle da Unisinos** com a sua própria conta. Pergunte em português e o Claude consulta (e, com a sua confirmação, age) no Moodle por você.
 
-Requisitos: Node 20+ e Microsoft Edge ou Google Chrome instalado.
+> **Projeto independente**, feito por um aluno, sem vínculo oficial com a Unisinos. Usa a mesma API que o app oficial do Moodle usa no celular.
+
+## O que dá para pedir
+
+- *"O que vence esta semana?"* — prazos de tarefas e questionários, inclusive atrasados
+- *"Como estão minhas notas?"* — boletim de cada disciplina, com comentários dos professores
+- *"Resuma os slides da última aula de Engenharia de Software"* — lê PDFs, PPTX, DOCX, planilhas e páginas
+- *"Baixe todos os PDFs de Álgebra"* — salva em `Downloads/Moodle Unisinos/<disciplina>`
+- *"Já entreguei o trabalho de Algoritmos?"* / *"Entrega o arquivo C:\...\trabalho.pdf na Etapa 3"*
+- *"Tem aviso novo dos professores?"* — fóruns, notificações e mensagens
+- *"Abre o Exercício 2 de Álgebra"* — mostra as questões e marca **só a resposta que você disser**
+
+## Instalação
+
+Você precisa do [Claude Desktop](https://claude.ai/download) e do **Microsoft Edge** ou do **Google Chrome**, que são usados no login.
+
+### Claude Desktop (recomendado, sem terminal)
+
+1. Baixe o arquivo **`unisinos-moodle-mcp-<versão>.mcpb`** na [página de releases](https://github.com/renanhrt/unisinos-moodle-mcp/releases/latest).
+2. Dê dois cliques no arquivo (ou arraste para a janela do Claude Desktop) e clique em **Instalar**.
+3. Num chat novo, diga: **"conecta no meu Moodle"**.
+
+### Claude Code
 
 ```bash
+claude mcp add --scope user unisinos-moodle -- npx -y unisinos-moodle-mcp
+```
+
+<details>
+<summary>Instalar a partir do código-fonte</summary>
+
+```bash
+git clone https://github.com/renanhrt/unisinos-moodle-mcp.git
+cd unisinos-moodle-mcp
 npm install
 npm run build
-npm run login     # abre o navegador; entre com a conta Microsoft da Unisinos
-npm run whoami    # confere se o token salvo funciona
+claude mcp add --scope user unisinos-moodle -- node "$(pwd)/dist/index.js"
 ```
 
-O token fica em `~/.unisinos-moodle-mcp/credentials.json`, fora do repositório. Para sair, apague esse arquivo.
-
-Depois de mudar o código, rode `npm run build` e reinicie o Claude: os dois usam o `dist/` desta pasta.
-
-### Claude Code (todas as pastas)
-
-```bash
-claude mcp add --scope user unisinos-moodle -- node C:\caminho\para\unisinos-moodle-mcp\dist\index.js
-```
-
-Confira com `claude mcp get unisinos-moodle` (deve aparecer "Connected").
-
-### Claude Desktop (chat)
-
-Acrescente `mcpServers` ao `claude_desktop_config.json` (menu **Configurações → Desenvolvedor → Editar configuração**). Na instalação pela Microsoft Store o arquivo fica em `%LOCALAPPDATA%\Claude-Data\<pasta do app>\claude_desktop_config.json`; na instalação comum, em `%APPDATA%\Claude\`. Mantenha o resto do arquivo como está:
+Para o Claude Desktop sem a extensão, acrescente ao `claude_desktop_config.json` (**Configurações → Desenvolvedor → Editar configuração**):
 
 ```json
 {
   "mcpServers": {
-    "unisinos-moodle": {
-      "command": "C:\\caminho\\para\\node.exe",
-      "args": ["C:\\caminho\\para\\unisinos-moodle-mcp\\dist\\index.js"]
-    }
+    "unisinos-moodle": { "command": "node", "args": ["C:\\caminho\\para\\unisinos-moodle-mcp\\dist\\index.js"] }
   }
 }
 ```
+</details>
 
-Feche o Claude Desktop por completo (inclusive o ícone perto do relógio) e abra de novo.
+## Primeiro uso: login
 
-### Ferramentas disponíveis (v0.5)
+Diga **"conecta no meu Moodle"**. Vai abrir uma janela do navegador no login da Microsoft da Unisinos. Entre com a sua conta institucional e confirme o MFA, se ele for pedido. A janela fecha sozinha ao terminar.
 
-| Ferramenta | O que faz |
+- O acesso fica salvo **só no seu computador**, em `~/.unisinos-moodle-mcp/`. Ele não passa por nenhum servidor além do próprio Moodle.
+- Sua senha nunca passa pelo MCP. O login é feito na página da Microsoft, e o Moodle devolve um token, como acontece no app oficial.
+- Quando o acesso expirar, o Claude avisa e pede o login de novo.
+- Para sair, diga **"desconecta do Moodle"**. Em computador compartilhado, peça para também esquecer a conta da Microsoft.
+
+## Segurança
+
+Tudo que **altera** o Moodle funciona em duas etapas: o Claude mostra uma **prévia** e só executa depois que você confirmar.
+
+| Ação | Prévia mostra |
 |---|---|
-| `moodle_get_me` | quem está logado |
-| `moodle_list_courses` | disciplinas (atuais, passadas, futuras ou todas) |
-| `moodle_get_course_contents` | semanas, atividades, arquivos e status de conclusão |
-| `moodle_upcoming_deadlines` | prazos dos próximos dias, incluindo atrasados |
-| `moodle_get_grades` | boletim de uma disciplina, com comentários |
-| `moodle_grades_overview` | nota total de todas as disciplinas |
-| `moodle_list_assignments` | tarefas com datas de abertura, entrega e corte |
-| `moodle_get_assignment_status` | se já entregou, o que enviou, nota e feedback |
-| `moodle_read_file` | lê um material para a IA: PDF (por página), PPTX (por slide, com notas), DOCX, XLSX (por aba), HTML (com vídeos e links incorporados), texto e imagens |
-| `moodle_submit_assignment` | **entrega uma tarefa** (arquivos do computador e/ou texto). Sempre em duas etapas: prévia + confirmação do aluno |
-| `moodle_remove_submission` | apaga o conteúdo enviado numa tarefa (volta a "nada enviado"). Também em duas etapas. Em grupo, apaga o envio do grupo |
-| `moodle_list_notifications` | notificações (conteúdo novo, prazos, notas, fóruns), com nomes de disciplina encurtados |
-| `moodle_list_forums` / `moodle_list_discussions` / `moodle_read_discussion` | fóruns (inclui os de Avisos), tópicos e mensagens com anexos |
-| `moodle_reply_forum` / `moodle_create_discussion` / `moodle_delete_forum_post` | responder, criar tópico e apagar a própria mensagem — prévia + confirmação |
-| `moodle_list_conversations` / `moodle_read_conversation` / `moodle_search_people` | mensagens privadas e busca de professores/colegas |
-| `moodle_send_message` | envia mensagem (conversa existente, pessoa ou suas anotações pessoais) — prévia + confirmação |
-| `moodle_list_quizzes` | questionários: abertura/fechamento, tempo, tentativas usadas/permitidas, tentativa em andamento, nota |
-| `moodle_quiz_start` / `moodle_quiz_questions` / `moodle_quiz_answer` / `moodle_quiz_finish` | responder questionários pelo MCP, como no app oficial: abrir (prévia + confirmação), ver questões, marcar a resposta **que o aluno disser**, enviar (prévia + confirmação) |
-| `moodle_quiz_next_page` / `moodle_quiz_review` | avançar página em navegação sequencial (confirmação) e revisão de tentativas finalizadas (se o professor liberar) |
-| `moodle_download_file` | salva um arquivo em `~/Downloads/Moodle Unisinos/<pasta>` (mude com `MOODLE_DOWNLOAD_DIR`); não sobrescreve |
+| Entregar / remover envio de tarefa | arquivos novos, mantidos e substituídos; prazo; se é a entrega final; atraso; envio em grupo; tarefa já avaliada |
+| Responder / criar / apagar no fórum | a mensagem respondida e o texto que será publicado |
+| Enviar mensagem | destinatário e texto |
+| Abrir / enviar questionário | tentativas usadas; questões sem resposta |
 
-Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?", "resuma os slides da última aula de Engenharia de Software", "baixe todos os PDFs de Álgebra".
+- O código de confirmação vale 15 minutos e uma única vez, só para aquela ação. Se qualquer detalhe mudar, ele é recusado.
+- **Questionários:** a IA não sugere, não resolve e não escolhe respostas. Ela só mostra as questões e marca o que você disser. Se o pedido for ambíguo ("marca a 1" quando há uma opção com texto "1"), ela pergunta a letra.
+- Downloads só são aceitos do próprio Moodle, para o token nunca ser enviado a outro site.
+- Arquivos em pastas ocultas (como `.ssh`) e os dados internos do MCP não podem ser enviados como entrega.
 
-Os arquivos só são baixados do próprio Moodle (`pluginfile.php` em www.moodle.unisinos.br) e sem seguir redirects, para o token nunca ser enviado a outro site. `.doc`/`.ppt`/`.xls` antigos, áudio e vídeo não são lidos, só baixados.
+## Ferramentas
 
-### Ações que alteram o Moodle
+| Área | Ferramentas |
+|---|---|
+| Conta | `moodle_login`, `moodle_logout`, `moodle_get_me` |
+| Disciplinas | `moodle_list_courses`, `moodle_get_course_contents` |
+| Prazos e notas | `moodle_upcoming_deadlines`, `moodle_get_grades`, `moodle_grades_overview`, `moodle_list_notifications` |
+| Arquivos | `moodle_read_file` (PDF, PPTX, DOCX, XLSX, HTML, texto, imagens), `moodle_download_file` |
+| Tarefas | `moodle_list_assignments`, `moodle_get_assignment_status`, `moodle_submit_assignment`, `moodle_remove_submission` |
+| Fóruns | `moodle_list_forums`, `moodle_list_discussions`, `moodle_read_discussion`, `moodle_reply_forum`, `moodle_create_discussion`, `moodle_delete_forum_post` |
+| Mensagens | `moodle_list_conversations`, `moodle_read_conversation`, `moodle_search_people`, `moodle_send_message` |
+| Questionários | `moodle_list_quizzes`, `moodle_quiz_start`, `moodle_quiz_questions`, `moodle_quiz_answer`, `moodle_quiz_next_page`, `moodle_quiz_finish`, `moodle_quiz_review` |
 
-Entregar/remover envio, responder/criar/apagar no fórum e enviar mensagem usam o mesmo fluxo: a primeira chamada só gera uma **prévia** e um código; a ação só acontece quando a IA chama de novo com o código, depois da sua confirmação. O código é de uso único, vale 15 min, só vale para aquele tipo de ação e é recusado se qualquer detalhe mudar.
+## Problemas comuns
 
-Nos fóruns de Avisos (os únicos das disciplinas atuais) alunos não podem responder nem criar tópicos; as ferramentas detectam isso e bloqueiam antes de enviar.
+- **A janela de login não abre:** confira se o Edge ou o Chrome está instalado. Para escolher qual usar, defina `MOODLE_BROWSER_CHANNEL=chrome` ou `msedge`.
+- **"O acesso ao Moodle expirou":** diga "conecta no meu Moodle" de novo.
+- **Questionário com senha ou "navegador seguro":** essas regras exigem o navegador. Responda pelo Moodle.
+- **Fórum de Avisos:** alunos não podem postar nele. A ferramenta avisa e não envia nada.
 
-### Questionários
+## Configuração (opcional)
 
-O MCP funciona como o app oficial do Moodle: mostra as questões (texto, imagens, opções com letras) e marca **somente** a opção que você disser ("marca a b na questão 3"). A IA **não sugere, não resolve e não escolhe** respostas — essa regra está nas instruções do servidor e na descrição de cada ferramenta de questionário.
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `MOODLE_DOWNLOAD_DIR` | `~/Downloads/Moodle Unisinos` | onde salvar os arquivos baixados |
+| `MOODLE_BROWSER_CHANNEL` | Edge, depois Chrome | navegador do login |
+| `UNISINOS_MOODLE_HOME` | `~/.unisinos-moodle-mcp` | onde guardar o acesso |
+| `MOODLE_URL` | `https://www.moodle.unisinos.br` | outro Moodle com o app móvel habilitado (pode funcionar, mas não foi testado) |
 
-- Abrir uma tentativa nova pede confirmação (gasta uma tentativa e inicia o cronômetro, se houver). Retomar uma tentativa em andamento não.
-- Pedidos ambíguos são recusados: se "1" puder ser a 1ª opção ou a opção com texto "1", pede a letra.
-- Navegação livre: lê todas as páginas. Navegação sequencial: só a página atual; avançar pede confirmação (não dá para voltar).
-- Enviar pede confirmação e avisa quantas questões estão sem resposta.
-- Regras que exigem navegador (senha, Safe Exam Browser etc.) são detectadas e o MCP manda usar o Moodle.
-- Tipos lidos: múltipla escolha (uma ou várias), verdadeiro/falso, resposta curta/numérica, associação/listas e redação em texto.
-
-### Como funciona a entrega de tarefas
-
-1. A IA chama `moodle_submit_assignment` **sem** `confirmationCode`. Nada é enviado: volta uma prévia com a tarefa, a disciplina, o prazo, os arquivos (novos `+`, mantidos `=`, substituídos `−`), se aquilo já é a entrega final e avisos (atraso, envio em grupo, tarefa já avaliada).
-2. A IA mostra a prévia e **só** chama de novo com o código depois que você confirmar.
-
-Proteções:
-- O código vale 15 min, só pode ser usado uma vez e só vale para exatamente aquela prévia. Se o arquivo mudar no disco, se as opções mudarem ou se o envio mudar no Moodle, ele é recusado.
-- Bloqueia antes de enviar: data de corte vencida, envios ainda fechados, tipo de arquivo não aceito, arquivos demais ou grandes demais, tarefa travada ou já finalizada.
-- Só envia arquivos com caminho completo, fora de pastas ocultas (`.ssh`, `.aws`…) e fora da pasta onde fica o token.
-- Os arquivos que já estavam no envio são mantidos. Um arquivo novo com o mesmo nome substitui o antigo.
-- Na Unisinos as tarefas não têm rascunho: **salvar o envio já é a entrega final**. Em tarefas com rascunho, `finalize=true` envia para avaliação (e exige aceitar a declaração de autoria, quando houver).
-
-### Desenvolvimento
+## Desenvolvimento
 
 ```bash
-npm test          # testes unitários e de integração (Moodle simulado)
-npm run dev       # servidor MCP direto do TypeScript
+npm install
+npm test            # testes com um Moodle simulado
+npm run dev         # servidor MCP direto do TypeScript
+npm run pack:mcpb   # gera releases/unisinos-moodle-mcp-<versão>.mcpb
 ```
 
-## Ideia central
+O servidor usa a API REST de Web Services do Moodle com o serviço `moodle_mobile_app`, o mesmo do app oficial. O login usa o fluxo do app (`admin/tool/mobile/launch.php`) num navegador controlado pelo [Playwright](https://playwright.dev), e o token só é aceito se a assinatura enviada pelo Moodle conferir.
 
-O Moodle já tem uma **API oficial de Web Services** (`/webservice/rest/server.php`), usada pelo app **Moodle Mobile**. Se a Unisinos tem o app mobile habilitado, a gente reutiliza o mesmo serviço (`moodle_mobile_app`) com o token do próprio aluno. Isso dá acesso estável, rápido e dentro das permissões do aluno, sem precisar raspar HTML.
+Código em TypeScript, com o [SDK oficial de MCP](https://github.com/modelcontextprotocol/typescript-sdk).
 
-```
-Claude ──(MCP / stdio)──> unisinos-moodle-mcp ──(REST + wstoken)──> Moodle Unisinos
-                                │
-                                └─ fallback: Playwright (só para o que a API não cobre)
-```
+## Licença
 
-## Autenticação
-
-### O que o Moodle da Unisinos expõe (verificado em 2026-11-16)
-
-Consulta pública `tool_mobile_get_public_config` em `https://www.moodle.unisinos.br/lib/ajax/service-nologin.php`:
-
-| Campo | Valor | Significado |
-|---|---|---|
-| `enablewebservices` | `1` | API REST ligada |
-| `enablemobilewebservice` | `1` | serviço `moodle_mobile_app` disponível para alunos |
-| `typeoflogin` | `3` | login por navegador embutido (SSO) |
-| `identityproviders` | Office365 via `auth/saml2` | login é Microsoft (SAML2) |
-| `launchurl` | `/admin/tool/mobile/launch.php` | fluxo do app mobile para obter token |
-
-`/login/index.php` redireciona direto para `login.microsoftonline.com`. Ou seja: **`/login/token.php` com usuário e senha não deve funcionar**. O caminho é o fluxo SSO do app.
-
-### Fluxo escolhido: SSO do app mobile
-
-1. Script `npm run login` abre um navegador visível (Playwright) em
-   `https://www.moodle.unisinos.br/admin/tool/mobile/launch.php?service=moodle_mobile_app&passport=<aleatório>&urlscheme=moodlemobile`
-2. O aluno faz login normalmente na Microsoft (incluindo MFA).
-3. O Moodle redireciona para `moodlemobile://token=<base64>`. O script intercepta esse redirect.
-4. O base64 decodifica para `assinatura:::token[:::privatetoken]`. A assinatura deve ser igual a `md5(wwwroot + passport)`; se não bater, descarta.
-5. O token é salvo localmente (fora do git) e usado em `/webservice/rest/server.php?wstoken=...&moodlewsrestformat=json`.
-
-O token do app costuma durar bastante (até o aluno sair ou o admin revogar). Quando expirar, basta rodar `npm run login` de novo.
-
-**Fallback**: se o redirect for bloqueado, usar a sessão do navegador do Playwright (cookies) para o que for preciso.
-
-O token fica em `.env` / cofre local e **nunca** vai para o git.
-
-> Aviso de manutenção publicado pelo Moodle: indisponível em 31/12, 0h01–23h59.
-
-## Ferramentas MCP planejadas
-
-| Área | Ferramenta | Função do Moodle WS |
-|---|---|---|
-| Perfil | `get_me` | `core_webservice_get_site_info` |
-| Disciplinas | `list_courses` | `core_enrol_get_users_courses` |
-| Conteúdo | `get_course_contents`, `download_file` | `core_course_get_contents` + `/webservice/pluginfile.php` |
-| Agenda | `upcoming_deadlines` | `core_calendar_get_action_events_by_timesort` |
-| Tarefas | `list_assignments`, `get_submission_status` | `mod_assign_get_assignments`, `mod_assign_get_submission_status` |
-| Entrega | `submit_assignment` (com confirmação) | `core_files_upload` + `mod_assign_save_submission` + `mod_assign_submit_for_grading` |
-| Notas | `get_grades` | `gradereport_user_get_grade_items` |
-| Fóruns | `list_discussions`, `read_discussion`, `reply_forum` | `mod_forum_*` |
-| Mensagens | `list_conversations`, `send_message` | `core_message_*` |
-| Notificações | `list_notifications` | `message_popup_get_popup_notifications` |
-| Progresso | `mark_activity_done` | `core_completion_update_activity_completion_status_manually` |
-| Novidades | `whats_new_since` | `core_course_get_updates_since` |
-
-Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **prompts** prontos ("resumo da semana", "o que vence nos próximos 7 dias", "resuma o material da aula X").
-
-## Regras de segurança
-
-- Ações que escrevem (entregar tarefa, postar em fórum, enviar mensagem) exigem confirmação explícita.
-- Questionários/provas: só leitura de informações (datas, tentativas). Nada de responder automaticamente; isso fere a integridade acadêmica.
-- Respeitar limites de requisição e os termos de uso da Unisinos.
-
-## Stack sugerida
-
-- TypeScript + `@modelcontextprotocol/sdk`, transporte stdio
-- `zod` para os schemas das ferramentas
-- Playwright apenas como fallback
-
-## Roadmap
-
-1. ~~**Descoberta**: identificar a URL do Moodle e o tipo de login~~ ✅ SSO Office365, mobile WS habilitado.
-2. ✅ **Login**: script Playwright que captura o token do app (testado com conta real em 2026-11-16; Moodle 4.5.8, 444 funções liberadas).
-3. ✅ **MVP somente leitura**: perfil, disciplinas, conteúdos, prazos, notas e tarefas.
-4. ✅ **Arquivos**: leitura (PDF, PPTX, DOCX, XLSX, HTML, texto, imagens) e download.
-5. ✅ **Entrega e remoção de envio** com prévia e confirmação (ciclo completo testado no Moodle real em 2026-11-16, na Etapa 3 do Projeto Extensionista: entrega de um PDF de teste e remoção logo em seguida).
-6. ✅ **Fóruns, mensagens e notificações** (envio de mensagem testado no Moodle real com uma anotação pessoal, apagada em seguida).
-   `core_files_upload` **não** está liberada para o token, mas `uploadfiles = 1`: o envio de arquivos tem que usar `/webservice/upload.php` (como o app faz) e depois `mod_assign_save_submission`.
-7. ✅ **Questionários** (listagem e prévia testadas no Moodle real; abrir/marcar/enviar testados com Moodle simulado — o primeiro uso real valida o leitor de questões).
-8. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.
+[MIT](LICENSE)
