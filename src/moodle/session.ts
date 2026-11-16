@@ -5,7 +5,7 @@ import { MoodleClient } from "./client.js";
 
 export class NotLoggedInError extends Error {
   constructor() {
-    super("Nenhum login do Moodle encontrado. Rode `npm run login` no projeto unisinos-moodle-mcp.");
+    super("O aluno ainda não conectou o Moodle. Use a ferramenta moodle_login (ele pode dizer \"conecta no meu Moodle\").");
     this.name = "NotLoggedInError";
   }
 }

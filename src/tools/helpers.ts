@@ -22,7 +22,7 @@ export function describeError(err: unknown): string {
   if (err instanceof MoodleError) {
     if (err.isAuthError) {
       resetSession();
-      return "O token do Moodle é inválido ou expirou. Peça ao aluno para rodar `npm run login` no projeto unisinos-moodle-mcp.";
+      return "O acesso ao Moodle expirou ou foi revogado. Use a ferramenta moodle_login para o aluno entrar de novo.";
     }
     return `Erro do Moodle${err.errorcode ? ` (${err.errorcode})` : ""}: ${err.message}`;
   }

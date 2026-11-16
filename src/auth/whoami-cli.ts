@@ -4,7 +4,7 @@ import { loadCredentials } from "./store.js";
 
 const creds = await loadCredentials();
 if (!creds) {
-  console.error("Nenhum login salvo. Rode `npm run login`.");
+  console.error('Nenhum login salvo. Rode `unisinos-moodle-mcp login` (ou peça ao Claude: "conecta no meu Moodle").');
   process.exit(1);
 }
 
@@ -15,7 +15,7 @@ try {
   console.log(`Moodle ${info.release ?? "?"} · ${info.functions?.length ?? 0} funções liberadas para este token`);
 } catch (err) {
   if (err instanceof MoodleError && err.isAuthError) {
-    console.error("Token inválido ou expirado. Rode `npm run login` de novo.");
+    console.error("Token inválido ou expirado. Rode `unisinos-moodle-mcp login` de novo.");
   } else {
     console.error(err instanceof Error ? err.message : String(err));
   }

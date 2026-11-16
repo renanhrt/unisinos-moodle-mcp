@@ -81,6 +81,8 @@ test("expõe as ferramentas e marca quais alteram algo", async () => {
     "moodle_list_forums",
     "moodle_list_notifications",
     "moodle_list_quizzes",
+    "moodle_login",
+    "moodle_logout",
     "moodle_quiz_answer",
     "moodle_quiz_finish",
     "moodle_quiz_next_page",
@@ -97,14 +99,14 @@ test("expõe as ferramentas e marca quais alteram algo", async () => {
     "moodle_submit_assignment",
     "moodle_upcoming_deadlines",
   ]);
-  const writes = ["moodle_create_discussion", "moodle_delete_forum_post", "moodle_download_file", "moodle_quiz_answer", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_quiz_start", "moodle_remove_submission", "moodle_reply_forum", "moodle_send_message", "moodle_submit_assignment"];
+  const writes = ["moodle_create_discussion", "moodle_delete_forum_post", "moodle_download_file", "moodle_login", "moodle_logout", "moodle_quiz_answer", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_quiz_start", "moodle_remove_submission", "moodle_reply_forum", "moodle_send_message", "moodle_submit_assignment"];
   assert.deepEqual(tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort(), writes);
   assert.deepEqual(
     tools.filter((t) => t.annotations?.destructiveHint !== false).map((t) => t.name).sort(),
-    ["moodle_delete_forum_post", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_remove_submission", "moodle_submit_assignment"],
+    ["moodle_delete_forum_post", "moodle_logout", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_remove_submission", "moodle_submit_assignment"],
   );
   // toda ferramenta que altera o Moodle explica o fluxo de confirmação
-  for (const t of tools.filter((x) => writes.includes(x.name) && !["moodle_download_file", "moodle_quiz_answer"].includes(x.name))) {
+  for (const t of tools.filter((x) => writes.includes(x.name) && !["moodle_download_file", "moodle_login", "moodle_logout", "moodle_quiz_answer"].includes(x.name))) {
     assert.match(t.description ?? "", /DUAS ETAPAS/, t.name);
     assert.ok("confirmationCode" in ((t.inputSchema as { properties: object }).properties), t.name);
   }
@@ -204,7 +206,7 @@ test("token inválido vira erro amigável pedindo novo login", async () => {
   const client = await connect();
   const r = (await client.callTool({ name: "moodle_get_me", arguments: {} })) as { isError?: boolean; content: { text: string }[] };
   assert.equal(r.isError, true);
-  assert.match(r.content[0]!.text, /npm run login/);
+  assert.match(r.content[0]!.text, /moodle_login/);
 });
 
 test("moodle_read_file lê, pagina por offset e usa cache", async () => {

@@ -13,7 +13,7 @@ export interface StoredCredentials {
 
 /**
  * Lê as credenciais. MOODLE_TOKEN no ambiente tem prioridade (útil para testes);
- * senão usa o arquivo salvo por `npm run login`.
+ * senão usa o arquivo salvo pelo login (ferramenta moodle_login ou `unisinos-moodle-mcp login`).
  */
 export async function loadCredentials(): Promise<Pick<StoredCredentials, "siteUrl" | "token"> | null> {
   if (process.env.MOODLE_TOKEN) return { siteUrl: MOODLE_URL, token: process.env.MOODLE_TOKEN };
