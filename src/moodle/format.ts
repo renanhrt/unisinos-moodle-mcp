@@ -129,6 +129,32 @@ export function parseUnisinosCourseName(fullname: string): UnisinosCourseName | 
   }) as UnisinosCourseName;
 }
 
+/**
+ * Troca, dentro de um texto, o nome longo das disciplinas pelo nome curto. Funciona mesmo
+ * quando o Moodle cortou o nome no meio (comum em notificações).
+ */
+export function shortenCourseNamesIn(text: string, fullnames: string[]): string {
+  let out = text;
+  for (const full of fullnames) {
+    const p = parseUnisinosCourseName(full);
+    if (!p) continue;
+    const prefix = `${p.semester} - ${p.name} - ${p.code}`;
+    let idx: number;
+    while ((idx = out.indexOf(prefix)) !== -1) {
+      let i = idx;
+      let j = 0;
+      while (i < out.length && j < full.length && out[i] === full[j]) {
+        i++;
+        j++;
+      }
+      // não deixa sobrar " - " ou espaço solto do nome cortado
+      const rest = out.slice(i).replace(/^\s*-?\s*$/, "");
+      out = out.slice(0, idx) + p.name + (rest && !/^\s/.test(rest) ? " " : "") + rest;
+    }
+  }
+  return out.trim();
+}
+
 /** Nome curto da disciplina (sem semestre, código, turma etc.). */
 export function shortCourseName(fullname: string | undefined): string | undefined {
   if (!fullname) return fullname;

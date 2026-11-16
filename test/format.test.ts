@@ -7,6 +7,7 @@ import {
   htmlToText,
   parseUnisinosCourseName,
   shortCourseName,
+  shortenCourseNamesIn,
 } from "../src/moodle/format.js";
 
 test("htmlToText remove tags, decodifica entidades e quebra parágrafos", () => {
@@ -60,6 +61,16 @@ test("parseUnisinosCourseName separa as partes do nome da disciplina", () => {
   assert.equal(parseUnisinosCourseName("Curso de Ambientação"), null);
   assert.equal(shortCourseName("Curso de Ambientação"), "Curso de Ambientação");
   assert.equal(titleCase("CARLOS ALBERTO DOS SANTOS"), "Carlos Alberto dos Santos");
+});
+
+test("shortenCourseNamesIn troca o nome longo, mesmo cortado", () => {
+  const full = "2026/2 - Álgebra Linear e Geometria Analítica - GR10001-00001-100001 - 10BSEMI - MARIA DA SILVA SOUZA - Unisinos São Leopoldo - Sede";
+  assert.equal(shortenCourseNamesIn(`${full} content change`, [full]), "Álgebra Linear e Geometria Analítica content change");
+  assert.equal(
+    shortenCourseNamesIn("EXERCÍCIO 1 has been changed in the course 2026/2 - Álgebra Linear e Geometria Analítica - GR10001-00001-100001 - 10BSEMI - MARIA DA SILVA SOUZA ", [full]),
+    "EXERCÍCIO 1 has been changed in the course Álgebra Linear e Geometria Analítica",
+  );
+  assert.equal(shortenCourseNamesIn("nada a ver", [full]), "nada a ver");
 });
 
 function titleCase(teacher: string): string | undefined {

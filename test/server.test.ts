@@ -62,10 +62,12 @@ function json(result: unknown): any {
   return JSON.parse(r.content[0]!.text);
 }
 
-test("expõe as ferramentas; só download e entrega gravam algo, e só a entrega altera o Moodle", async () => {
+test("expõe as ferramentas e marca quais alteram algo", async () => {
   const client = await connect();
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((t) => t.name).sort(), [
+    "moodle_create_discussion",
+    "moodle_delete_forum_post",
     "moodle_download_file",
     "moodle_get_assignment_status",
     "moodle_get_course_contents",
@@ -73,20 +75,32 @@ test("expõe as ferramentas; só download e entrega gravam algo, e só a entrega
     "moodle_get_me",
     "moodle_grades_overview",
     "moodle_list_assignments",
+    "moodle_list_conversations",
     "moodle_list_courses",
+    "moodle_list_discussions",
+    "moodle_list_forums",
+    "moodle_list_notifications",
+    "moodle_read_conversation",
+    "moodle_read_discussion",
     "moodle_read_file",
     "moodle_remove_submission",
+    "moodle_reply_forum",
+    "moodle_search_people",
+    "moodle_send_message",
     "moodle_submit_assignment",
     "moodle_upcoming_deadlines",
   ]);
-  assert.deepEqual(
-    tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort(),
-    ["moodle_download_file", "moodle_remove_submission", "moodle_submit_assignment"],
-  );
+  const writes = ["moodle_create_discussion", "moodle_delete_forum_post", "moodle_download_file", "moodle_remove_submission", "moodle_reply_forum", "moodle_send_message", "moodle_submit_assignment"];
+  assert.deepEqual(tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort(), writes);
   assert.deepEqual(
     tools.filter((t) => t.annotations?.destructiveHint !== false).map((t) => t.name).sort(),
-    ["moodle_remove_submission", "moodle_submit_assignment"],
+    ["moodle_delete_forum_post", "moodle_remove_submission", "moodle_submit_assignment"],
   );
+  // toda ferramenta que altera o Moodle explica o fluxo de confirmação
+  for (const t of tools.filter((x) => writes.includes(x.name) && x.name !== "moodle_download_file")) {
+    assert.match(t.description ?? "", /DUAS ETAPAS/, t.name);
+    assert.ok("confirmationCode" in ((t.inputSchema as { properties: object }).properties), t.name);
+  }
 });
 
 test("moodle_list_courses filtra o semestre atual", async () => {

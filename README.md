@@ -34,7 +34,7 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 }
 ```
 
-### Ferramentas disponíveis (v0.3)
+### Ferramentas disponíveis (v0.4)
 
 | Ferramenta | O que faz |
 |---|---|
@@ -49,11 +49,22 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 | `moodle_read_file` | lê um material para a IA: PDF (por página), PPTX (por slide, com notas), DOCX, XLSX (por aba), HTML (com vídeos e links incorporados), texto e imagens |
 | `moodle_submit_assignment` | **entrega uma tarefa** (arquivos do computador e/ou texto). Sempre em duas etapas: prévia + confirmação do aluno |
 | `moodle_remove_submission` | apaga o conteúdo enviado numa tarefa (volta a "nada enviado"). Também em duas etapas. Em grupo, apaga o envio do grupo |
+| `moodle_list_notifications` | notificações (conteúdo novo, prazos, notas, fóruns), com nomes de disciplina encurtados |
+| `moodle_list_forums` / `moodle_list_discussions` / `moodle_read_discussion` | fóruns (inclui os de Avisos), tópicos e mensagens com anexos |
+| `moodle_reply_forum` / `moodle_create_discussion` / `moodle_delete_forum_post` | responder, criar tópico e apagar a própria mensagem — prévia + confirmação |
+| `moodle_list_conversations` / `moodle_read_conversation` / `moodle_search_people` | mensagens privadas e busca de professores/colegas |
+| `moodle_send_message` | envia mensagem (conversa existente, pessoa ou suas anotações pessoais) — prévia + confirmação |
 | `moodle_download_file` | salva um arquivo em `~/Downloads/Moodle Unisinos/<pasta>` (mude com `MOODLE_DOWNLOAD_DIR`); não sobrescreve |
 
 Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?", "resuma os slides da última aula de Engenharia de Software", "baixe todos os PDFs de Álgebra".
 
 Os arquivos só são baixados do próprio Moodle (`pluginfile.php` em www.moodle.unisinos.br) e sem seguir redirects, para o token nunca ser enviado a outro site. `.doc`/`.ppt`/`.xls` antigos, áudio e vídeo não são lidos, só baixados.
+
+### Ações que alteram o Moodle
+
+Entregar/remover envio, responder/criar/apagar no fórum e enviar mensagem usam o mesmo fluxo: a primeira chamada só gera uma **prévia** e um código; a ação só acontece quando a IA chama de novo com o código, depois da sua confirmação. O código é de uso único, vale 15 min, só vale para aquele tipo de ação e é recusado se qualquer detalhe mudar.
+
+Nos fóruns de Avisos (os únicos das disciplinas atuais) alunos não podem responder nem criar tópicos; as ferramentas detectam isso e bloqueiam antes de enviar.
 
 ### Como funciona a entrega de tarefas
 
@@ -155,6 +166,6 @@ Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **promp
 3. ✅ **MVP somente leitura**: perfil, disciplinas, conteúdos, prazos, notas e tarefas.
 4. ✅ **Arquivos**: leitura (PDF, PPTX, DOCX, XLSX, HTML, texto, imagens) e download.
 5. ✅ **Entrega e remoção de envio** com prévia e confirmação (ciclo completo testado no Moodle real em 2026-11-16, na Etapa 3 do Projeto Extensionista: entrega de um PDF de teste e remoção logo em seguida).
-6. **Fóruns e mensagens** com confirmação.
+6. ✅ **Fóruns, mensagens e notificações** (envio de mensagem testado no Moodle real com uma anotação pessoal, apagada em seguida).
    `core_files_upload` **não** está liberada para o token, mas `uploadfiles = 1`: o envio de arquivos tem que usar `/webservice/upload.php` (como o app faz) e depois `mod_assign_save_submission`.
 7. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.
