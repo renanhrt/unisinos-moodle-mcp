@@ -34,7 +34,7 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 }
 ```
 
-### Ferramentas disponíveis (v0.2, nada é alterado no Moodle)
+### Ferramentas disponíveis (v0.3)
 
 | Ferramenta | O que faz |
 |---|---|
@@ -47,11 +47,24 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 | `moodle_list_assignments` | tarefas com datas de abertura, entrega e corte |
 | `moodle_get_assignment_status` | se já entregou, o que enviou, nota e feedback |
 | `moodle_read_file` | lê um material para a IA: PDF (por página), PPTX (por slide, com notas), DOCX, XLSX (por aba), HTML (com vídeos e links incorporados), texto e imagens |
+| `moodle_submit_assignment` | **entrega uma tarefa** (arquivos do computador e/ou texto). Sempre em duas etapas: prévia + confirmação do aluno |
 | `moodle_download_file` | salva um arquivo em `~/Downloads/Moodle Unisinos/<pasta>` (mude com `MOODLE_DOWNLOAD_DIR`); não sobrescreve |
 
 Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?", "resuma os slides da última aula de Engenharia de Software", "baixe todos os PDFs de Álgebra".
 
 Os arquivos só são baixados do próprio Moodle (`pluginfile.php` em www.moodle.unisinos.br) e sem seguir redirects, para o token nunca ser enviado a outro site. `.doc`/`.ppt`/`.xls` antigos, áudio e vídeo não são lidos, só baixados.
+
+### Como funciona a entrega de tarefas
+
+1. A IA chama `moodle_submit_assignment` **sem** `confirmationCode`. Nada é enviado: volta uma prévia com a tarefa, a disciplina, o prazo, os arquivos (novos `+`, mantidos `=`, substituídos `−`), se aquilo já é a entrega final e avisos (atraso, envio em grupo, tarefa já avaliada).
+2. A IA mostra a prévia e **só** chama de novo com o código depois que você confirmar.
+
+Proteções:
+- O código vale 15 min, só pode ser usado uma vez e só vale para exatamente aquela prévia. Se o arquivo mudar no disco, se as opções mudarem ou se o envio mudar no Moodle, ele é recusado.
+- Bloqueia antes de enviar: data de corte vencida, envios ainda fechados, tipo de arquivo não aceito, arquivos demais ou grandes demais, tarefa travada ou já finalizada.
+- Só envia arquivos com caminho completo, fora de pastas ocultas (`.ssh`, `.aws`…) e fora da pasta onde fica o token.
+- Os arquivos que já estavam no envio são mantidos. Um arquivo novo com o mesmo nome substitui o antigo.
+- Na Unisinos as tarefas não têm rascunho: **salvar o envio já é a entrega final**. Em tarefas com rascunho, `finalize=true` envia para avaliação (e exige aceitar a declaração de autoria, quando houver).
 
 ### Desenvolvimento
 
@@ -140,6 +153,7 @@ Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **promp
 2. ✅ **Login**: script Playwright que captura o token do app (testado com conta real em 2026-11-16; Moodle 4.5.8, 444 funções liberadas).
 3. ✅ **MVP somente leitura**: perfil, disciplinas, conteúdos, prazos, notas e tarefas.
 4. ✅ **Arquivos**: leitura (PDF, PPTX, DOCX, XLSX, HTML, texto, imagens) e download.
-5. **Escrita com confirmação**: entregas, fóruns, mensagens.
+5. ✅ **Entrega de tarefas** com prévia e confirmação.
+6. **Fóruns e mensagens** com confirmação.
    `core_files_upload` **não** está liberada para o token, mas `uploadfiles = 1`: o envio de arquivos tem que usar `/webservice/upload.php` (como o app faz) e depois `mod_assign_save_submission`.
-6. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.
+7. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.

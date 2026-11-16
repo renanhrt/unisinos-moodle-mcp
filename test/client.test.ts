@@ -64,6 +64,37 @@ test("call aceita respostas null (funções sem retorno)", async () => {
   assert.equal(await client.call("x"), null);
 });
 
+test("uploadDraftFile envia multipart com token no corpo e trata erros", async () => {
+  let lastUrl = "";
+  let lastForm: FormData | null = null;
+  const mk = (body: unknown) =>
+    new MoodleClient({
+      baseUrl: "https://m.example",
+      token: "tok",
+      fetchImpl: (async (url: string, init?: RequestInit) => {
+        lastUrl = String(url);
+        lastForm = init?.body as FormData;
+        return new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
+      }) as typeof fetch,
+    });
+
+  await mk([{ filename: "a.pdf", itemid: 55 }]).uploadDraftFile(55, "a.pdf", new Uint8Array([1]), "application/pdf");
+  assert.equal(lastUrl, "https://m.example/webservice/upload.php");
+  assert.equal(lastForm!.get("token"), "tok");
+  assert.equal(lastForm!.get("itemid"), "55");
+  assert.equal((lastForm!.get("file_1") as File).name, "a.pdf");
+
+  await assert.rejects(
+    mk([{ filename: "a.pdf", errortype: "filenameexist", error: "File name already exists: a.pdf" }]).uploadDraftFile(55, "a.pdf", new Uint8Array([1]), "application/pdf"),
+    /already exists/,
+  );
+  await assert.rejects(
+    mk({ error: "Invalid token", errorcode: "invalidtoken" }).uploadDraftFile(1, "a", new Uint8Array(), "x"),
+    (e: unknown) => e instanceof MoodleError && e.isAuthError,
+  );
+  await assert.rejects(mk([{ filename: "a.pdf", itemid: 99 }]).uploadDraftFile(55, "a.pdf", new Uint8Array([1]), "x"), /outra área/);
+});
+
 test("authenticatedFileUrl troca para webservice/pluginfile e adiciona token", () => {
   const client = new MoodleClient({ baseUrl: "https://m.example", token: "tok" });
   assert.equal(

@@ -62,7 +62,7 @@ function json(result: unknown): any {
   return JSON.parse(r.content[0]!.text);
 }
 
-test("expõe as ferramentas; só o download grava algo (no computador)", async () => {
+test("expõe as ferramentas; só download e entrega gravam algo, e só a entrega altera o Moodle", async () => {
   const client = await connect();
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((t) => t.name).sort(), [
@@ -75,13 +75,17 @@ test("expõe as ferramentas; só o download grava algo (no computador)", async (
     "moodle_list_assignments",
     "moodle_list_courses",
     "moodle_read_file",
+    "moodle_submit_assignment",
     "moodle_upcoming_deadlines",
   ]);
   assert.deepEqual(
-    tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name),
-    ["moodle_download_file"],
+    tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort(),
+    ["moodle_download_file", "moodle_submit_assignment"],
   );
-  assert.ok(tools.every((t) => t.annotations?.destructiveHint === false));
+  assert.deepEqual(
+    tools.filter((t) => t.annotations?.destructiveHint !== false).map((t) => t.name),
+    ["moodle_submit_assignment"],
+  );
 });
 
 test("moodle_list_courses filtra o semestre atual", async () => {

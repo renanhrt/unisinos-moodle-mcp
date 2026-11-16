@@ -145,6 +145,44 @@ export class MoodleClient {
     return u;
   }
 
+  /** Área de rascunho nova e vazia do usuário, para montar um envio. */
+  async newDraftItemId(): Promise<number> {
+    const r = await this.call<{ itemid: number }>("core_files_get_unused_draft_itemid");
+    return r.itemid;
+  }
+
+  /**
+   * Envia um arquivo para a área de rascunho (webservice/upload.php), como o app oficial faz.
+   * O token vai no corpo do POST, nunca na URL.
+   */
+  async uploadDraftFile(itemid: number, filename: string, bytes: Uint8Array, mimetype: string): Promise<void> {
+    const form = new FormData();
+    form.append("token", this.token);
+    form.append("filearea", "draft");
+    form.append("itemid", String(itemid));
+    form.append("filepath", "/");
+    form.append("file_1", new Blob([new Uint8Array(bytes)], { type: mimetype }), filename);
+
+    const res = await this.fetchImpl(`${this.baseUrl}/webservice/upload.php`, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(this.timeoutMs * 10),
+      redirect: "manual",
+    });
+    if (!res.ok) throw new MoodleError(`HTTP ${res.status} ao enviar ${filename}`);
+    const data = (await res.json()) as
+      | { exception?: string; error?: string; errorcode?: string; message?: string }
+      | { filename: string; itemid?: number; errortype?: string; error?: string }[];
+    if (!Array.isArray(data)) {
+      throw new MoodleError(data.message ?? data.error ?? `Erro ao enviar ${filename}`, data.errorcode, data.exception);
+    }
+    const failed = data.find((f) => f.errortype || f.error);
+    if (failed) throw new MoodleError(`Falha ao enviar ${filename}: ${failed.error ?? failed.errortype}`, failed.errortype);
+    if (data[0]?.itemid !== undefined && Number(data[0].itemid) !== itemid) {
+      throw new MoodleError(`O Moodle salvou ${filename} em outra área de rascunho; envio cancelado.`);
+    }
+  }
+
   async downloadFile(
     fileurl: string,
     maxBytes = 50 * 1024 * 1024,
