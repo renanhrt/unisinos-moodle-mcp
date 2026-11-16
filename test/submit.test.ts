@@ -38,6 +38,7 @@ let drafts: Map<number, { filename: string; body: string }[]>;
 let saved: Record<string, string> | null;
 let submittedForGrading: URLSearchParams | null;
 let saveWarnings: unknown[];
+let removedWith: URLSearchParams | null;
 let log: string[];
 let nextItem: number;
 
@@ -51,6 +52,7 @@ function resetFake() {
   saved = null;
   submittedForGrading = null;
   saveWarnings = [];
+  removedWith = null;
   log = [];
   nextItem = 9000;
 }
@@ -146,6 +148,11 @@ before(() => {
         status = assign.submissiondrafts ? "draft" : "submitted";
         return reply([]);
       }
+      case "mod_assign_remove_submission":
+        removedWith = body;
+        existing = [];
+        status = "new";
+        return reply({ status: true, warnings: [] });
       case "mod_assign_submit_for_grading":
         submittedForGrading = body;
         status = "submitted";
@@ -357,6 +364,58 @@ test("utilitários", () => {
   assert.equal(parseFileTypes("document"), null);
   assert.equal(countWords("  um  dois\ntrês "), 3);
   assert.equal(escapeAsHtml("a\nb"), "<p>a<br>b</p>");
+});
+
+async function remove(client: Client, args: Record<string, unknown> = {}) {
+  const r = (await client.callTool({ name: "moodle_remove_submission", arguments: { assignmentId: 500, ...args } })) as {
+    isError?: boolean;
+    content: { text: string }[];
+  };
+  return { isError: r.isError === true, text: r.content[0]!.text, code: /Código de confirmação: ([A-F0-9]{8})/.exec(r.content[0]!.text)?.[1] };
+}
+
+test("remoção: prévia não apaga; com o código apaga e confere", async () => {
+  const client = await connect();
+  const prev = await remove(client);
+  assert.equal(prev.isError, false, prev.text);
+  assert.match(prev.text, /PRÉVIA — nada foi apagado/);
+  assert.match(prev.text, /− antigo\.pdf/);
+  assert.equal(removedWith, null);
+
+  const done = await remove(client, { confirmationCode: prev.code });
+  assert.equal(done.isError, false, done.text);
+  assert.match(done.text, /✅ Envio removido.*\n.*nada enviado; arquivos restantes: 0/);
+  assert.equal(removedWith!.get("userid"), "7");
+  assert.equal(removedWith!.get("assignid"), "500");
+
+  const again = await remove(client);
+  assert.equal(again.isError, true);
+  assert.match(again.text, /Não há nada no envio/);
+});
+
+test("remoção: código não vale se o envio mudou nem serve para entregar", async () => {
+  const client = await connect();
+  const prev = await remove(client);
+  existing.push({ filename: "colega.pdf", body: "C" });
+  const r = await remove(client, { confirmationCode: prev.code });
+  assert.equal(r.isError, true);
+  assert.match(r.text, /mudou desde a prévia/);
+  assert.equal(removedWith, null);
+
+  const prev2 = await remove(client);
+  const p = await file("a.pdf", "A");
+  const crossed = await submit(client, { files: [p], confirmationCode: prev2.code });
+  assert.equal(crossed.isError, true, "código de remoção não pode autorizar entrega");
+  assert.equal(saved, null);
+});
+
+test("remoção em grupo avisa que apaga o envio do grupo", async () => {
+  (assign as FakeAssign & { teamsubmission?: number }).teamsubmission = 1;
+  const client = await connect();
+  const r = await remove(client);
+  // o fake devolve o envio em "submission"; com teamsubmission o plano lê "teamsubmission" → vazio
+  assert.equal(r.isError, true);
+  assert.match(r.text, /GRUPO INTEIRO/);
 });
 
 after(async () => {

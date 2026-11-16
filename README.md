@@ -48,6 +48,7 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 | `moodle_get_assignment_status` | se já entregou, o que enviou, nota e feedback |
 | `moodle_read_file` | lê um material para a IA: PDF (por página), PPTX (por slide, com notas), DOCX, XLSX (por aba), HTML (com vídeos e links incorporados), texto e imagens |
 | `moodle_submit_assignment` | **entrega uma tarefa** (arquivos do computador e/ou texto). Sempre em duas etapas: prévia + confirmação do aluno |
+| `moodle_remove_submission` | apaga o conteúdo enviado numa tarefa (volta a "nada enviado"). Também em duas etapas. Em grupo, apaga o envio do grupo |
 | `moodle_download_file` | salva um arquivo em `~/Downloads/Moodle Unisinos/<pasta>` (mude com `MOODLE_DOWNLOAD_DIR`); não sobrescreve |
 
 Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?", "resuma os slides da última aula de Engenharia de Software", "baixe todos os PDFs de Álgebra".
@@ -153,7 +154,7 @@ Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **promp
 2. ✅ **Login**: script Playwright que captura o token do app (testado com conta real em 2026-11-16; Moodle 4.5.8, 444 funções liberadas).
 3. ✅ **MVP somente leitura**: perfil, disciplinas, conteúdos, prazos, notas e tarefas.
 4. ✅ **Arquivos**: leitura (PDF, PPTX, DOCX, XLSX, HTML, texto, imagens) e download.
-5. ✅ **Entrega de tarefas** com prévia e confirmação.
+5. ✅ **Entrega e remoção de envio** com prévia e confirmação (ciclo completo testado no Moodle real em 2026-11-16, na Etapa 3 do Projeto Extensionista: entrega de um PDF de teste e remoção logo em seguida).
 6. **Fóruns e mensagens** com confirmação.
    `core_files_upload` **não** está liberada para o token, mas `uploadfiles = 1`: o envio de arquivos tem que usar `/webservice/upload.php` (como o app faz) e depois `mod_assign_save_submission`.
 7. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.

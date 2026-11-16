@@ -5,9 +5,14 @@ import { formatBytes, formatDate } from "../moodle/format.js";
 import { getSession } from "../moodle/session.js";
 import {
   checkConfirmationCode,
+  checkRemovalCode,
   describePlan,
+  describeRemoval,
+  executeRemoval,
   executeSubmission,
   issueConfirmationCode,
+  issueRemovalCode,
+  planRemoval,
   planSubmission,
 } from "../moodle/submission.js";
 import { describeError } from "./helpers.js";
@@ -88,6 +93,57 @@ export function registerSubmitTools(server: McpServer): void {
             `Situação no Moodle agora: ${after.currentStatus === "submitted" ? "enviado para avaliação" : after.currentStatus === "draft" ? "rascunho" : after.currentStatus}` +
             ` (modificado em ${formatDate(status.lastattempt?.submission?.timemodified) ?? "?"}).\n` +
             `Arquivos no envio:\n${files}`,
+        );
+      } catch (err) {
+        return text(describeError(err), true);
+      }
+    },
+  );
+
+  server.registerTool(
+    "moodle_remove_submission",
+    {
+      title: "Remover envio de tarefa",
+      description:
+        "Apaga o conteúdo enviado em uma tarefa (arquivos e texto), deixando-a como 'nada enviado'. FUNCIONA EM DUAS ETAPAS:\n" +
+        "1) Chame SEM confirmationCode: nada é apagado; volta uma prévia do que será removido e um código.\n" +
+        "2) Mostre a prévia ao aluno e só chame de novo com confirmationCode depois que ele disser explicitamente que sim. " +
+        "Em tarefas em grupo, apaga o envio do grupo inteiro.",
+      inputSchema: {
+        assignmentId: z.number().int().positive().describe("assignmentId da tarefa"),
+        confirmationCode: z.string().optional().describe("código da prévia; SOMENTE depois de o aluno confirmar explicitamente"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+    },
+    async ({ assignmentId, confirmationCode }): Promise<CallToolResult> => {
+      try {
+        const { client, site } = await getSession();
+        const plan = await planRemoval(client, assignmentId);
+        const preview = describeRemoval(plan);
+        if (plan.errors.length) return text(preview, true);
+
+        if (!confirmationCode) {
+          const code = issueRemovalCode(plan);
+          return text(
+            `PRÉVIA — nada foi apagado ainda.\n\n${preview}\n\n` +
+              `Código de confirmação: ${code} (vale 15 min, uso único).\n` +
+              "Mostre esta prévia ao aluno. Só se ele confirmar explicitamente, chame moodle_remove_submission de novo " +
+              `com confirmationCode="${code}".`,
+          );
+        }
+
+        const problem = checkRemovalCode(plan, confirmationCode);
+        if (problem) return text(problem, true);
+
+        await executeRemoval(client, plan, site.userid);
+
+        const after = await planRemoval(client, assignmentId);
+        const left = after.currentFiles.length;
+        return text(
+          `✅ Envio removido de "${plan.assignment.name}".\n` +
+            `Situação no Moodle agora: ${after.currentStatus === "new" ? "nada enviado" : after.currentStatus}; ` +
+            `arquivos restantes: ${left}${after.hasText ? " (ainda há texto)" : ""}.`,
+          left > 0 || after.hasText,
         );
       } catch (err) {
         return text(describeError(err), true);

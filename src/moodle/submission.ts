@@ -325,29 +325,28 @@ export async function planSubmission(client: MoodleClient, req: SubmissionReques
 const secret = randomBytes(32);
 const issued = new Map<string, number>();
 
-/** Identidade do plano: muda se qualquer arquivo, texto, opção ou o estado atual mudar. */
-function fingerprint(plan: SubmissionPlan): string {
-  return createHash("sha256")
-    .update(
-      JSON.stringify({
-        r: plan.request,
-        n: plan.newFiles.map((f) => [f.path, f.size, f.mtimeMs]),
-        c: plan.currentFiles.map((f) => [f.filename, f.size]),
-        s: plan.currentStatus,
-        f: plan.final,
-      }),
-    )
-    .digest("hex");
+/**
+ * Identidade de uma ação: o tipo ("submit", "remove"…) + tudo que define o que vai acontecer.
+ * Qualquer mudança (arquivo no disco, opção, estado no Moodle) gera outra identidade.
+ */
+function fingerprint(kind: string, payload: unknown): string {
+  return createHash("sha256").update(kind).update("\u0000").update(JSON.stringify(payload)).digest("hex");
 }
 
-export function issueConfirmationCode(plan: SubmissionPlan, nowMs = Date.now()): string {
-  const code = createHmac("sha256", secret).update(fingerprint(plan)).digest("hex").slice(0, 8).toUpperCase();
+function codeFor(fp: string): string {
+  return createHmac("sha256", secret).update(fp).digest("hex").slice(0, 8).toUpperCase();
+}
+
+/** Emite um código de confirmação (15 min, uso único) para esta ação exata. */
+export function issueCode(kind: string, payload: unknown, nowMs = Date.now()): string {
+  const code = codeFor(fingerprint(kind, payload));
   issued.set(code, nowMs + CODE_TTL_MS);
   for (const [k, exp] of issued) if (exp < nowMs) issued.delete(k);
   return code;
 }
 
-export function checkConfirmationCode(plan: SubmissionPlan, code: string, nowMs = Date.now()): string | null {
+/** null = código válido (e consumido); string = motivo da recusa. */
+export function checkCode(kind: string, payload: unknown, code: string, nowMs = Date.now()): string | null {
   const normalized = code.trim().toUpperCase();
   const exp = issued.get(normalized);
   if (!exp) return "Código de confirmação desconhecido. Gere uma nova prévia (sem confirmationCode).";
@@ -355,12 +354,105 @@ export function checkConfirmationCode(plan: SubmissionPlan, code: string, nowMs 
     issued.delete(normalized);
     return "Código de confirmação expirado (15 min). Gere uma nova prévia.";
   }
-  const expected = createHmac("sha256", secret).update(fingerprint(plan)).digest("hex").slice(0, 8).toUpperCase();
-  if (expected !== normalized) {
-    return "O envio mudou desde a prévia (arquivos, texto, opções ou estado no Moodle). Gere uma nova prévia e confirme de novo com o aluno.";
+  if (codeFor(fingerprint(kind, payload)) !== normalized) {
+    return "A ação mudou desde a prévia (arquivos, opções ou estado no Moodle). Gere uma nova prévia e confirme de novo com o aluno.";
   }
   issued.delete(normalized); // uso único
   return null;
+}
+
+function submitPayload(plan: SubmissionPlan) {
+  return {
+    r: plan.request,
+    n: plan.newFiles.map((f) => [f.path, f.size, f.mtimeMs]),
+    c: plan.currentFiles.map((f) => [f.filename, f.size]),
+    s: plan.currentStatus,
+    f: plan.final,
+  };
+}
+
+export function issueConfirmationCode(plan: SubmissionPlan, nowMs = Date.now()): string {
+  return issueCode("submit", submitPayload(plan), nowMs);
+}
+
+export function checkConfirmationCode(plan: SubmissionPlan, code: string, nowMs = Date.now()): string | null {
+  const problem = checkCode("submit", submitPayload(plan), code, nowMs);
+  return problem?.startsWith("A ação mudou")
+    ? "O envio mudou desde a prévia (arquivos, texto, opções ou estado no Moodle). Gere uma nova prévia e confirme de novo com o aluno."
+    : problem;
+}
+
+// ---------- remoção do envio ----------
+
+export interface RemovalPlan {
+  assignment: AssignmentInfo;
+  courseName: string;
+  currentStatus: string;
+  currentFiles: RemoteFile[];
+  hasText: boolean;
+  team: boolean;
+  warnings: string[];
+  errors: string[];
+}
+
+export async function planRemoval(client: MoodleClient, assignmentId: number): Promise<RemovalPlan> {
+  const { a, courseName } = await findAssignment(client, assignmentId);
+  const status = await client.call<SubmissionStatus>("mod_assign_get_submission_status", { assignid: assignmentId });
+  const attempt = status.lastattempt;
+  const team = Boolean(a.teamsubmission);
+  const sub = team ? attempt?.teamsubmission : attempt?.submission;
+  const currentFiles = submissionFiles(sub);
+  const text = submissionText(sub);
+  const hasText = Boolean(text && htmlToText(text));
+
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (currentFiles.length === 0 && !hasText) errors.push("Não há nada no envio desta tarefa para remover.");
+  if (attempt?.locked) errors.push("O envio está bloqueado pelo professor.");
+  if (attempt && attempt.canedit === false) errors.push("O Moodle não permite editar (nem remover) este envio agora.");
+  if (team) warnings.push("Envio em grupo: a remoção apaga o envio do GRUPO INTEIRO, inclusive arquivos enviados por colegas.");
+  const grade = status.feedback?.gradefordisplay ? htmlToText(status.feedback.gradefordisplay) : null;
+  if (grade) warnings.push(`Esta tarefa já foi avaliada (nota ${grade}).`);
+
+  return { assignment: a, courseName, currentStatus: sub?.status ?? "new", currentFiles, hasText, team, warnings, errors };
+}
+
+function removalPayload(plan: RemovalPlan) {
+  return { a: plan.assignment.id, s: plan.currentStatus, f: plan.currentFiles.map((f) => [f.filename, f.size]), t: plan.hasText };
+}
+
+export function issueRemovalCode(plan: RemovalPlan, nowMs = Date.now()): string {
+  return issueCode("remove", removalPayload(plan), nowMs);
+}
+
+export function checkRemovalCode(plan: RemovalPlan, code: string, nowMs = Date.now()): string | null {
+  return checkCode("remove", removalPayload(plan), code, nowMs);
+}
+
+export function describeRemoval(plan: RemovalPlan): string {
+  const lines = [
+    `Tarefa: ${plan.assignment.name}`,
+    `Disciplina: ${plan.courseName}`,
+    `Situação atual: ${STATUS_PT[plan.currentStatus] ?? plan.currentStatus}`,
+  ];
+  if (plan.currentFiles.length || plan.hasText) {
+    lines.push("", "Será APAGADO do envio:");
+    for (const f of plan.currentFiles) lines.push(`  − ${f.filename} (${formatBytes(f.size)})`);
+    if (plan.hasText) lines.push("  − o texto online");
+  }
+  if (plan.warnings.length) lines.push("", "Atenção:", ...plan.warnings.map((w) => `  ! ${w}`));
+  if (plan.errors.length) lines.push("", "NÃO É POSSÍVEL REMOVER:", ...plan.errors.map((e) => `  ✗ ${e}`));
+  return lines.join("\n");
+}
+
+export async function executeRemoval(client: MoodleClient, plan: RemovalPlan, userid: number): Promise<void> {
+  const r = await client.call<{ status: boolean; warnings?: { message: string }[] }>("mod_assign_remove_submission", {
+    userid,
+    assignid: plan.assignment.id,
+  });
+  if (!r?.status || r.warnings?.length) {
+    throw new MoodleError(`O Moodle não removeu o envio: ${(r?.warnings ?? []).map((w) => w.message).join("; ") || "sem detalhes"}`);
+  }
 }
 
 // ---------- prévia ----------

@@ -75,16 +75,17 @@ test("expõe as ferramentas; só download e entrega gravam algo, e só a entrega
     "moodle_list_assignments",
     "moodle_list_courses",
     "moodle_read_file",
+    "moodle_remove_submission",
     "moodle_submit_assignment",
     "moodle_upcoming_deadlines",
   ]);
   assert.deepEqual(
     tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort(),
-    ["moodle_download_file", "moodle_submit_assignment"],
+    ["moodle_download_file", "moodle_remove_submission", "moodle_submit_assignment"],
   );
   assert.deepEqual(
-    tools.filter((t) => t.annotations?.destructiveHint !== false).map((t) => t.name),
-    ["moodle_submit_assignment"],
+    tools.filter((t) => t.annotations?.destructiveHint !== false).map((t) => t.name).sort(),
+    ["moodle_remove_submission", "moodle_submit_assignment"],
   );
 });
 
