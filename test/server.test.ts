@@ -7,18 +7,29 @@ import { resetSession } from "../src/moodle/session.js";
 
 // Respostas falsas do Moodle, por wsfunction.
 let responses: Record<string, unknown> = {};
+// Arquivos falsos servidos em webservice/pluginfile.php, por caminho.
+let files: Record<string, { body: string; type: string }> = {};
 const calls: { fn: string; body: URLSearchParams }[] = [];
 const realFetch = globalThis.fetch;
 
 const NOW = Math.floor(Date.now() / 1000);
 const DAY = 86_400;
 
-const SITE_INFO = { sitename: "Moodle Unisinos", siteurl: "https://www.moodle.unisinos.br", userid: 7, username: "aluno", fullname: "Aluno Teste", release: "4.3" };
+const SITE = "https://www.moodle.unisinos.br";
+const SITE_INFO = { sitename: "Moodle Unisinos", siteurl: SITE, userid: 7, username: "aluno", fullname: "Aluno Teste", release: "4.3" };
 
 before(() => {
   process.env.MOODLE_TOKEN = "f".repeat(32);
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
-    const fn = new URL(String(url)).searchParams.get("wsfunction")!;
+    const u = new URL(String(url));
+    if (u.pathname.startsWith("/webservice/pluginfile.php/")) {
+      calls.push({ fn: "pluginfile", body: u.searchParams });
+      const f = files[u.pathname];
+      return f
+        ? new Response(f.body, { headers: { "content-type": f.type } })
+        : new Response(JSON.stringify({ error: "Arquivo não encontrado", errorcode: "filenotfound" }), { headers: { "content-type": "application/json" } });
+    }
+    const fn = u.searchParams.get("wsfunction")!;
     calls.push({ fn, body: new URLSearchParams(String(init?.body)) });
     const body = fn in responses ? responses[fn] : { exception: "x", errorcode: "notmocked", message: `sem mock: ${fn}` };
     return new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
@@ -34,6 +45,7 @@ beforeEach(() => {
   resetSession();
   calls.length = 0;
   responses = { core_webservice_get_site_info: SITE_INFO };
+  files = {};
 });
 
 async function connect() {
@@ -50,10 +62,11 @@ function json(result: unknown): any {
   return JSON.parse(r.content[0]!.text);
 }
 
-test("expõe as ferramentas somente leitura", async () => {
+test("expõe as ferramentas; só o download grava algo (no computador)", async () => {
   const client = await connect();
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((t) => t.name).sort(), [
+    "moodle_download_file",
     "moodle_get_assignment_status",
     "moodle_get_course_contents",
     "moodle_get_grades",
@@ -61,9 +74,14 @@ test("expõe as ferramentas somente leitura", async () => {
     "moodle_grades_overview",
     "moodle_list_assignments",
     "moodle_list_courses",
+    "moodle_read_file",
     "moodle_upcoming_deadlines",
   ]);
-  assert.ok(tools.every((t) => t.annotations?.readOnlyHint === true));
+  assert.deepEqual(
+    tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name),
+    ["moodle_download_file"],
+  );
+  assert.ok(tools.every((t) => t.annotations?.destructiveHint === false));
 });
 
 test("moodle_list_courses filtra o semestre atual", async () => {
@@ -161,4 +179,47 @@ test("token inválido vira erro amigável pedindo novo login", async () => {
   const r = (await client.callTool({ name: "moodle_get_me", arguments: {} })) as { isError?: boolean; content: { text: string }[] };
   assert.equal(r.isError, true);
   assert.match(r.content[0]!.text, /npm run login/);
+});
+
+test("moodle_read_file lê, pagina por offset e usa cache", async () => {
+  const path = "/webservice/pluginfile.php/1/mod_page/content/3/index.html";
+  files[path] = { body: "<h1>Aula 1</h1>" + "<p>" + "x".repeat(3000) + "</p>", type: "text/html" };
+  const client = await connect();
+  const first = (await client.callTool({ name: "moodle_read_file", arguments: { fileurl: SITE + path, maxChars: 1000 } })) as any;
+  assert.equal(first.isError, undefined, first.content[0].text);
+  assert.match(first.content[0].text, /Arquivo: index\.html \(HTML/);
+  assert.match(first.content[0].text, /offset=1000/);
+  assert.equal(calls.find((c) => c.fn === "pluginfile")!.body.get("token"), "f".repeat(32));
+
+  const before = calls.filter((c) => c.fn === "pluginfile").length;
+  const second = (await client.callTool({ name: "moodle_read_file", arguments: { fileurl: SITE + path, offset: 3000 } })) as any;
+  assert.match(second.content[0].text, /Fim do conteúdo/);
+  assert.equal(calls.filter((c) => c.fn === "pluginfile").length, before, "segunda leitura deve vir do cache");
+});
+
+test("moodle_read_file recusa URL de outro site sem enviar o token", async () => {
+  const client = await connect();
+  const r = (await client.callTool({ name: "moodle_read_file", arguments: { fileurl: "https://evil.example/webservice/pluginfile.php/1/a.pdf" } })) as any;
+  assert.equal(r.isError, true);
+  assert.match(r.content[0].text, /Só é possível baixar arquivos de/);
+  assert.equal(calls.filter((c) => c.fn === "pluginfile").length, 0);
+});
+
+test("moodle_download_file salva na pasta configurada", async () => {
+  const { mkdtemp, readFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "moodle-srv-"));
+  process.env.MOODLE_DOWNLOAD_DIR = dir;
+  try {
+    const client = await connect();
+    const path = "/webservice/pluginfile.php/9/mod_resource/content/1/Lista%201.txt";
+    files[path] = { body: "exercícios", type: "text/plain" };
+    const out = json(await client.callTool({ name: "moodle_download_file", arguments: { fileurl: SITE + path, folder: "Álgebra" } }));
+    assert.equal(out.saved, join(dir, "Álgebra", "Lista 1.txt"));
+    assert.equal(await readFile(out.saved, "utf8"), "exercícios");
+  } finally {
+    delete process.env.MOODLE_DOWNLOAD_DIR;
+    await rm(dir, { recursive: true, force: true });
+  }
 });

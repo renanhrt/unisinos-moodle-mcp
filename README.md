@@ -34,7 +34,7 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 }
 ```
 
-### Ferramentas disponíveis (v0.1, somente leitura)
+### Ferramentas disponíveis (v0.2, nada é alterado no Moodle)
 
 | Ferramenta | O que faz |
 |---|---|
@@ -46,8 +46,12 @@ Em `%APPDATA%\Claude\claude_desktop_config.json`:
 | `moodle_grades_overview` | nota total de todas as disciplinas |
 | `moodle_list_assignments` | tarefas com datas de abertura, entrega e corte |
 | `moodle_get_assignment_status` | se já entregou, o que enviou, nota e feedback |
+| `moodle_read_file` | lê um material para a IA: PDF (por página), PPTX (por slide, com notas), DOCX, XLSX (por aba), HTML (com vídeos e links incorporados), texto e imagens |
+| `moodle_download_file` | salva um arquivo em `~/Downloads/Moodle Unisinos/<pasta>` (mude com `MOODLE_DOWNLOAD_DIR`); não sobrescreve |
 
-Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?".
+Exemplos de pedidos: "o que vence esta semana?", "como estão minhas notas?", "já entreguei o trabalho de Algoritmos?", "resuma os slides da última aula de Engenharia de Software", "baixe todos os PDFs de Álgebra".
+
+Os arquivos só são baixados do próprio Moodle (`pluginfile.php` em www.moodle.unisinos.br) e sem seguir redirects, para o token nunca ser enviado a outro site. `.doc`/`.ppt`/`.xls` antigos, áudio e vídeo não são lidos, só baixados.
 
 ### Desenvolvimento
 
@@ -135,7 +139,7 @@ Além das ferramentas, **resources** MCP (ex.: `moodle://course/{id}`) e **promp
 1. ~~**Descoberta**: identificar a URL do Moodle e o tipo de login~~ ✅ SSO Office365, mobile WS habilitado.
 2. ✅ **Login**: script Playwright que captura o token do app (testado com conta real em 2026-11-16; Moodle 4.5.8, 444 funções liberadas).
 3. ✅ **MVP somente leitura**: perfil, disciplinas, conteúdos, prazos, notas e tarefas.
-4. **Arquivos**: download e leitura de PDFs/slides para a IA resumir.
+4. ✅ **Arquivos**: leitura (PDF, PPTX, DOCX, XLSX, HTML, texto, imagens) e download.
 5. **Escrita com confirmação**: entregas, fóruns, mensagens.
    `core_files_upload` **não** está liberada para o token, mas `uploadfiles = 1`: o envio de arquivos tem que usar `/webservice/upload.php` (como o app faz) e depois `mod_assign_save_submission`.
 6. **Extras**: cache local, digest diário, sincronização de prazos com calendário/Notion.

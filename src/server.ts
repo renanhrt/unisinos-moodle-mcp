@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAssignmentTools } from "./tools/assignments.js";
 import { registerCalendarTools } from "./tools/calendar.js";
 import { registerCourseTools } from "./tools/courses.js";
+import { registerFileTools } from "./tools/files.js";
 import { registerGradeTools } from "./tools/grades.js";
 
 export function createServer(): McpServer {
@@ -11,13 +12,14 @@ export function createServer(): McpServer {
       instructions:
         "Ferramentas para o Moodle da Unisinos (www.moodle.unisinos.br) em nome do aluno logado. " +
         "Comece por moodle_list_courses para obter os ids das disciplinas. " +
-        "Datas estão no fuso de São Paulo. Todas as ferramentas atuais são somente leitura.",
+        "Datas estão no fuso de São Paulo. Para ler materiais (PDF, slides etc.) use moodle_read_file com o fileurl; para salvar no computador, moodle_download_file. Nenhuma ferramenta altera nada no Moodle.",
     },
   );
   registerCourseTools(server);
   registerCalendarTools(server);
   registerGradeTools(server);
   registerAssignmentTools(server);
+  registerFileTools(server);
   return server;
 }
 

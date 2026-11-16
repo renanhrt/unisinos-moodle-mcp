@@ -20,4 +20,9 @@ export const TIMEZONE = process.env.MOODLE_TIMEZONE ?? "America/Sao_Paulo";
 export const DATA_DIR = process.env.UNISINOS_MOODLE_HOME ?? join(homedir(), ".unisinos-moodle-mcp");
 
 export const CREDENTIALS_FILE = join(DATA_DIR, "credentials.json");
+
+/** Onde moodle_download_file salva os arquivos. Pode ser trocada por MOODLE_DOWNLOAD_DIR. */
+export function downloadDir(): string {
+  return process.env.MOODLE_DOWNLOAD_DIR ?? join(homedir(), "Downloads", "Moodle Unisinos");
+}
 export const BROWSER_PROFILE_DIR = join(DATA_DIR, "browser-profile");
