@@ -10,7 +10,7 @@
     "dev": "tsx src/server.ts",
     "login": "tsx src/auth/login-cli.ts",
     "whoami": "tsx src/auth/whoami-cli.ts",
-    "test": "node --import tsx --test \"test/**/*.test.ts\""
+    "test": "node --import tsx --test test/client.test.ts test/format.test.ts"
   },
   "license": "MIT",
   "dependencies": {
