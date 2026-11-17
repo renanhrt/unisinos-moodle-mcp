@@ -40,7 +40,7 @@
     "dev": "tsx src/index.ts",
     "login": "tsx src/auth/login-cli.ts",
     "whoami": "tsx src/auth/whoami-cli.ts",
-    "test": "node --import tsx --test test/client.test.ts test/format.test.ts test/launch-token.test.ts test/files.test.ts test/server.test.ts test/submit.test.ts test/forums-messages.test.ts test/quiz.test.ts test/auth.test.ts",
+    "test": "node --import tsx --test test/client.test.ts test/format.test.ts test/launch-token.test.ts test/files.test.ts test/server.test.ts test/submit.test.ts test/forums-messages.test.ts test/quiz.test.ts test/auth.test.ts test/updates.test.ts",
     "prepublishOnly": "npm run build && npm test",
     "pack:mcpb": "node scripts/build-mcpb.mjs",
     "icon": "node scripts/make-icon.mjs"

@@ -66,6 +66,7 @@ test("expõe as ferramentas e marca quais alteram algo", async () => {
   const client = await connect();
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((t) => t.name).sort(), [
+    "moodle_calendar",
     "moodle_create_discussion",
     "moodle_delete_forum_post",
     "moodle_download_file",
@@ -83,6 +84,7 @@ test("expõe as ferramentas e marca quais alteram algo", async () => {
     "moodle_list_quizzes",
     "moodle_login",
     "moodle_logout",
+    "moodle_mark_read",
     "moodle_quiz_answer",
     "moodle_quiz_finish",
     "moodle_quiz_next_page",
@@ -98,15 +100,16 @@ test("expõe as ferramentas e marca quais alteram algo", async () => {
     "moodle_send_message",
     "moodle_submit_assignment",
     "moodle_upcoming_deadlines",
+    "moodle_whats_new",
   ]);
-  const writes = ["moodle_create_discussion", "moodle_delete_forum_post", "moodle_download_file", "moodle_login", "moodle_logout", "moodle_quiz_answer", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_quiz_start", "moodle_remove_submission", "moodle_reply_forum", "moodle_send_message", "moodle_submit_assignment"];
+  const writes = ["moodle_create_discussion", "moodle_delete_forum_post", "moodle_download_file", "moodle_login", "moodle_logout", "moodle_mark_read", "moodle_quiz_answer", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_quiz_start", "moodle_remove_submission", "moodle_reply_forum", "moodle_send_message", "moodle_submit_assignment"];
   assert.deepEqual(tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort(), writes);
   assert.deepEqual(
     tools.filter((t) => t.annotations?.destructiveHint !== false).map((t) => t.name).sort(),
     ["moodle_delete_forum_post", "moodle_logout", "moodle_quiz_finish", "moodle_quiz_next_page", "moodle_remove_submission", "moodle_submit_assignment"],
   );
   // toda ferramenta que altera o Moodle explica o fluxo de confirmação
-  for (const t of tools.filter((x) => writes.includes(x.name) && !["moodle_download_file", "moodle_login", "moodle_logout", "moodle_quiz_answer"].includes(x.name))) {
+  for (const t of tools.filter((x) => writes.includes(x.name) && !["moodle_download_file", "moodle_login", "moodle_logout", "moodle_mark_read", "moodle_quiz_answer"].includes(x.name))) {
     assert.match(t.description ?? "", /DUAS ETAPAS/, t.name);
     assert.ok("confirmationCode" in ((t.inputSchema as { properties: object }).properties), t.name);
   }

@@ -9,10 +9,11 @@ import { registerGradeTools } from "./tools/grades.js";
 import { registerMessageTools } from "./tools/messages.js";
 import { QUIZ_RULE, registerQuizTools } from "./tools/quiz.js";
 import { registerSubmitTools } from "./tools/submit.js";
+import { registerUpdateTools } from "./tools/updates.js";
 
 export function createServer(): McpServer {
   const server = new McpServer(
-    { name: "unisinos-moodle", version: "0.6.0" },
+    { name: "unisinos-moodle", version: "0.7.0" },
     {
       instructions:
         "Ferramentas para o Moodle da Unisinos (www.moodle.unisinos.br) em nome do aluno logado. " +
@@ -24,6 +25,7 @@ export function createServer(): McpServer {
   registerAuthTools(server);
   registerCourseTools(server);
   registerCalendarTools(server);
+  registerUpdateTools(server);
   registerGradeTools(server);
   registerAssignmentTools(server);
   registerFileTools(server);

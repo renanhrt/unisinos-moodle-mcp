@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { MoodleError, type MoodleClient } from "../moodle/client.js";
-import { compact, formatDate, htmlToText, shortenCourseNamesIn } from "../moodle/format.js";
+import { compact, formatDate, htmlToText, nowUnix, shortenCourseNamesIn } from "../moodle/format.js";
 import { getSession } from "../moodle/session.js";
 import { escapeAsHtml } from "../moodle/submission.js";
 import { getEnrolledCourses } from "./courses.js";
@@ -116,6 +116,7 @@ export function registerMessageTools(server: McpServer): void {
             const subject = tidy(htmlToText(n.subject));
             const body = tidy(htmlToText(n.smallmessage || n.fullmessage || n.text, 600));
             return compact({
+              id: n.id,
               when: formatDate(n.timecreated),
               type: NOTIFICATION_TYPES[key] ?? key,
               subject,
@@ -125,6 +126,46 @@ export function registerMessageTools(server: McpServer): void {
             });
           }),
         };
+      }),
+  );
+
+  server.registerTool(
+    "moodle_mark_read",
+    {
+      title: "Marcar como lido",
+      description:
+        "Marca notificações e/ou uma conversa como lidas no Moodle. Use só quando o aluno pedir " +
+        "(ex.: \"marca tudo como lido\", \"já li essas notificações\"). Não apaga nada.",
+      inputSchema: {
+        allNotifications: z.boolean().default(false).describe("marcar TODAS as notificações como lidas"),
+        notificationIds: z.array(z.number().int().positive()).max(100).optional().describe("ids específicos (de moodle_list_notifications)"),
+        conversationId: z.number().int().positive().optional().describe("marcar todas as mensagens desta conversa como lidas"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    ({ allNotifications, notificationIds, conversationId }) =>
+      runTool(async ({ client, site }) => {
+        if (!allNotifications && !notificationIds?.length && conversationId === undefined) {
+          throw new MoodleError("Diga o que marcar: allNotifications, notificationIds ou conversationId.");
+        }
+        const done: string[] = [];
+        if (allNotifications) {
+          await client.call("core_message_mark_all_notifications_as_read", { useridto: site.userid });
+          done.push("todas as notificações");
+        } else if (notificationIds?.length) {
+          const now = nowUnix();
+          for (const id of notificationIds) {
+            await client.call("core_message_mark_notification_read", { notificationid: id, timeread: now });
+          }
+          done.push(`${notificationIds.length} notificação(ões)`);
+        }
+        if (conversationId !== undefined) {
+          await client.call("core_message_mark_all_conversation_messages_as_read", { userid: site.userid, conversationid: conversationId });
+          done.push(`a conversa ${conversationId}`);
+        }
+        // Mesmo contador do sininho do Moodle (o geral inclui notificações que não aparecem lá).
+        const unread = await client.call<number>("message_popup_get_unread_popup_notification_count", { useridto: site.userid });
+        return { marked: done.join(" e "), unreadNotificationsNow: unread };
       }),
   );
 
