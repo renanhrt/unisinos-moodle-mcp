@@ -23,7 +23,9 @@ Você precisa do [Claude Desktop](https://claude.ai/download) e do **Microsoft E
 ### Claude Desktop (recomendado, sem terminal)
 
 1. Baixe o arquivo **`unisinos-moodle-mcp-<versão>.mcpb`** na [página de releases](https://github.com/renanhrt/unisinos-moodle-mcp/releases/latest).
-2. Dê dois cliques no arquivo (ou arraste para a janela do Claude Desktop) e clique em **Instalar**.
+2. No Claude Desktop, abra **Configurações → Extensões**. Em **Configurações avançadas**, use **Instalar extensão…** e escolha o arquivo, ou arraste o `.mcpb` para dentro dessa tela. Confirme em **Instalar**.
+   - Na versão da Microsoft Store, os dois cliques no arquivo não abrem o Claude, porque o Windows não associa `.mcpb` ao app. Use o caminho acima.
+   - O aviso de "extensão não assinada" é esperado para extensões da comunidade.
 3. Num chat novo, diga: **"conecta no meu Moodle"**.
 
 ### Claude Code
