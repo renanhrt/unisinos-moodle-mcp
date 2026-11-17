@@ -1,5 +1,8 @@
 # Moodle Unisinos para o Claude
 
+[![Testes](https://github.com/renanhrt/unisinos-moodle-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/renanhrt/unisinos-moodle-mcp/actions/workflows/test.yml)
+[![npm](https://img.shields.io/npm/v/unisinos-moodle-mcp)](https://www.npmjs.com/package/unisinos-moodle-mcp)
+
 <img src="assets/icon.png" alt="" width="96" align="right">
 
 Servidor [MCP](https://modelcontextprotocol.io) que conecta o **Claude** ao **Moodle da Unisinos** com a sua própria conta. Pergunte em português e o Claude consulta (e, com a sua confirmação, age) no Moodle por você.
@@ -9,6 +12,8 @@ Servidor [MCP](https://modelcontextprotocol.io) que conecta o **Claude** ao **Mo
 ## O que dá para pedir
 
 - *"O que vence esta semana?"* — prazos de tarefas e questionários, inclusive atrasados
+- *"O que mudou nas disciplinas desde ontem?"* — materiais novos, avisos, notas
+- *"Como está minha agenda das próximas duas semanas?"* — calendário completo
 - *"Como estão minhas notas?"* — boletim de cada disciplina, com comentários dos professores
 - *"Resuma os slides da última aula de Engenharia de Software"* — lê PDFs, PPTX, DOCX, planilhas e páginas
 - *"Baixe todos os PDFs de Álgebra"* — salva em `Downloads/Moodle Unisinos/<disciplina>`
@@ -87,7 +92,7 @@ Tudo que **altera** o Moodle funciona em duas etapas: o Claude mostra uma **pré
 |---|---|
 | Conta | `moodle_login`, `moodle_logout`, `moodle_get_me` |
 | Disciplinas | `moodle_list_courses`, `moodle_get_course_contents` |
-| Prazos e notas | `moodle_upcoming_deadlines`, `moodle_get_grades`, `moodle_grades_overview`, `moodle_list_notifications` |
+| Prazos e notas | `moodle_upcoming_deadlines`, `moodle_calendar`, `moodle_whats_new`, `moodle_get_grades`, `moodle_grades_overview`, `moodle_list_notifications`, `moodle_mark_read` |
 | Arquivos | `moodle_read_file` (PDF, PPTX, DOCX, XLSX, HTML, texto, imagens), `moodle_download_file` |
 | Tarefas | `moodle_list_assignments`, `moodle_get_assignment_status`, `moodle_submit_assignment`, `moodle_remove_submission` |
 | Fóruns | `moodle_list_forums`, `moodle_list_discussions`, `moodle_read_discussion`, `moodle_reply_forum`, `moodle_create_discussion`, `moodle_delete_forum_post` |
