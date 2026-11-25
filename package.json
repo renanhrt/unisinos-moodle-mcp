@@ -1,6 +1,6 @@
 {
   "name": "unisinos-moodle-mcp",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Servidor MCP (Model Context Protocol) para o Moodle da Unisinos: use o Claude para ver prazos, notas, materiais, entregar tarefas, fóruns, mensagens e questionários.",
   "keywords": [
     "mcp",

@@ -13,7 +13,7 @@ import { registerUpdateTools } from "./tools/updates.js";
 
 export function createServer(): McpServer {
   const server = new McpServer(
-    { name: "unisinos-moodle", version: "0.7.0" },
+    { name: "unisinos-moodle", version: "0.7.1" },
     {
       instructions:
         "Ferramentas para o Moodle da Unisinos (www.moodle.unisinos.br) em nome do aluno logado. " +

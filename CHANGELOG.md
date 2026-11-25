@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- Corrigido: `moodle_upcoming_deadlines` devolvia o id errado (o `cmid`, em `instanceId`). Agora traz `cmid` e, separados, `assignmentId` (tarefas) e `quizId` (questionários), que são os ids que as outras ferramentas pedem.
+
 ## 0.7.0
 
 - **Novidades** (`moodle_whats_new`): o que mudou nas disciplinas desde ontem (ou N dias). Materiais, tópicos, notas e envios aparecem em destaque, e ajustes só de configuração são resumidos.
