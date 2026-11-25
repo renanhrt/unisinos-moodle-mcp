@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { MoodleError, type MoodleClient } from "../moodle/client.js";
 import { compact, formatDate, nowUnix, shortCourseName } from "../moodle/format.js";
 import { READ_ONLY, runTool } from "./helpers.js";
 
@@ -18,6 +19,34 @@ interface ActionEvent {
 }
 
 const DAY = 86_400;
+
+/**
+ * Nos eventos da linha do tempo, `instance` é o cmid (id da página da atividade), e não o id que
+ * as ferramentas de tarefa e de questionário pedem. Aqui traduzimos cmid → assignmentId / quizId.
+ * Se essa consulta falhar, os prazos ainda são listados, só sem o id.
+ */
+async function activityIds(client: MoodleClient, events: ActionEvent[]) {
+  const coursesWith = (type: string) => [
+    ...new Set(events.filter((e) => e.modulename === type && e.course).map((e) => e.course!.id)),
+  ];
+  const optional = async <T>(courseids: number[], wsfunction: string, empty: T): Promise<T> => {
+    if (!courseids.length) return empty;
+    try {
+      return await client.call<T>(wsfunction, { courseids });
+    } catch (err) {
+      if (err instanceof MoodleError && !err.isAuthError) return empty;
+      throw err;
+    }
+  };
+  const [a, q] = await Promise.all([
+    optional<{ courses: { assignments: { id: number; cmid: number }[] }[] }>(coursesWith("assign"), "mod_assign_get_assignments", { courses: [] }),
+    optional<{ quizzes: { id: number; coursemodule: number }[] }>(coursesWith("quiz"), "mod_quiz_get_quizzes_by_courses", { quizzes: [] }),
+  ]);
+  return {
+    assignments: new Map(a.courses.flatMap((c) => c.assignments).map((x) => [x.cmid, x.id])),
+    quizzes: new Map(q.quizzes.map((x) => [x.coursemodule, x.id])),
+  };
+}
 
 export function registerCalendarTools(server: McpServer): void {
   server.registerTool(
@@ -55,6 +84,8 @@ export function registerCalendarTools(server: McpServer): void {
               limittononsuspendedevents: true,
             });
 
+        const { assignments, quizzes } = await activityIds(client, events);
+
         return events
           .sort((a, b) => a.timesort - b.timesort)
           .map((e) =>
@@ -64,7 +95,9 @@ export function registerCalendarTools(server: McpServer): void {
               activity: e.activityname ?? e.name,
               event: e.name,
               type: e.modulename,
-              instanceId: e.instance,
+              cmid: e.instance,
+              assignmentId: e.modulename === "assign" ? assignments.get(e.instance ?? 0) : null,
+              quizId: e.modulename === "quiz" ? quizzes.get(e.instance ?? 0) : null,
               course: shortCourseName(e.course?.fullname),
               courseid: e.course?.id,
               todo: e.action?.actionable ? e.action.name : null,

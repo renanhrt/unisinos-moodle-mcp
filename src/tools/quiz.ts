@@ -211,7 +211,7 @@ export function registerQuizTools(server: McpServer): void {
         "Abre um questionário para o aluno responder pelo MCP. Se já houver tentativa em andamento, apenas a retoma. " +
         `Iniciar uma tentativa NOVA gasta uma das tentativas e inicia o cronômetro (se houver), por isso ${CONFIRMATION_RULE} ${QUIZ_RULE}`,
       inputSchema: {
-        quizId: z.number().int().positive().describe("quizId (de moodle_list_quizzes)"),
+        quizId: z.number().int().positive().describe("quizId (de moodle_list_quizzes ou moodle_upcoming_deadlines); não é o cmid"),
         confirmationCode: z.string().optional().describe(CONFIRMATION_CODE_DESC + " (só para tentativa nova)"),
       },
       annotations: WRITES_MOODLE,

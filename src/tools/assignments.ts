@@ -161,7 +161,7 @@ export function registerAssignmentTools(server: McpServer): void {
         "Mostra a situação do aluno em uma tarefa: se já enviou, arquivos/texto enviados, se ainda pode editar, " +
         "status da correção, nota e comentários do professor.",
       inputSchema: {
-        assignmentId: z.number().int().positive().describe("assignmentId (de moodle_list_assignments ou instanceId de moodle_upcoming_deadlines)"),
+        assignmentId: z.number().int().positive().describe("assignmentId (de moodle_list_assignments ou moodle_upcoming_deadlines); não é o cmid"),
       },
       annotations: READ_ONLY,
     },

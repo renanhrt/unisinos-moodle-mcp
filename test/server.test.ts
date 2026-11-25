@@ -167,6 +167,35 @@ test("moodle_upcoming_deadlines ordena e marca atrasos", async () => {
   assert.equal(events[0].overdue, true);
   assert.equal(events[1].overdue, undefined);
   assert.equal(events[1].todo, "Adicionar envio");
+  // a consulta dos ids não está simulada aqui (falha): os prazos saem mesmo assim, só sem o id
+  assert.equal(events[0].cmid, 21);
+  assert.equal(events[0].assignmentId, undefined);
+});
+
+test("moodle_upcoming_deadlines traduz o cmid para assignmentId e quizId", async () => {
+  // No Moodle, "instance" dos eventos da linha do tempo é o cmid, diferente do id da tarefa/questionário.
+  const course = { id: 501, fullname: "Algoritmos" };
+  responses.core_calendar_get_action_events_by_timesort = {
+    events: [
+      { id: 1, name: "Trabalho vence", modulename: "assign", instance: 1837996, timesort: NOW + DAY, course },
+      { id: 2, name: "Exercício fecha", modulename: "quiz", instance: 1842175, timesort: NOW + 2 * DAY, course },
+      { id: 3, name: "Fórum avaliado", modulename: "forum", instance: 1850000, timesort: NOW + 3 * DAY, course },
+    ],
+  };
+  responses.mod_assign_get_assignments = { courses: [{ id: 501, assignments: [{ id: 151632, cmid: 1837996 }] }] };
+  responses.mod_quiz_get_quizzes_by_courses = { quizzes: [{ id: 37934, coursemodule: 1842175 }] };
+  const client = await connect();
+  const events = json(await client.callTool({ name: "moodle_upcoming_deadlines", arguments: {} }));
+  assert.deepEqual(
+    events.map((e: any) => [e.type, e.cmid, e.assignmentId, e.quizId]),
+    [
+      ["assign", 1837996, 151632, undefined],
+      ["quiz", 1842175, undefined, 37934],
+      ["forum", 1850000, undefined, undefined],
+    ],
+  );
+  assert.ok(events.every((e: any) => !("instanceId" in e)), "instanceId era ambíguo e foi removido");
+  assert.equal(calls.find((c) => c.fn === "mod_assign_get_assignments")!.body.get("courseids[0]"), "501");
 });
 
 test("moodle_get_grades traduz total e esconde '-'", async () => {

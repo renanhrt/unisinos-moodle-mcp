@@ -32,7 +32,7 @@ export function registerSubmitTools(server: McpServer): void {
         "Na Unisinos, salvar o envio normalmente já é a entrega final. Os arquivos já enviados são mantidos (keepExistingFiles), " +
         "exceto os que tiverem o mesmo nome de um arquivo novo, que são substituídos.",
       inputSchema: {
-        assignmentId: z.number().int().positive().describe("assignmentId (de moodle_list_assignments, ou instanceId de um prazo do tipo assign)"),
+        assignmentId: z.number().int().positive().describe("assignmentId (de moodle_list_assignments ou moodle_upcoming_deadlines); não é o cmid"),
         files: z
           .array(z.string().min(1))
           .max(20)
