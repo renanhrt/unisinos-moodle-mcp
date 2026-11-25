@@ -89,6 +89,8 @@ test("login demorado: responde na hora e confirma quando terminar", async () => 
   const gate = new Promise<void>((r) => (finish = r));
   setLoginImplForTests(async () => {
     await gate;
+    // mais lento que a espera de uma chamada (50 ms): o login termina só depois de outra tentativa
+    await new Promise((r) => setTimeout(r, 200));
     return fakeLogin();
   }, 50);
   const client = await connect();
@@ -100,7 +102,10 @@ test("login demorado: responde na hora e confirma quando terminar", async () => 
   assert.match(stillWaiting.text, /Abri uma janela do navegador/);
 
   finish();
-  const done = await tool(client, "moodle_login");
+  // Chama de novo até terminar, sem depender da velocidade da máquina (limite: ~10 s).
+  let done = await tool(client, "moodle_login");
+  for (let i = 0; i < 200 && /Abri uma janela/.test(done.text); i++) done = await tool(client, "moodle_login");
+  assert.equal(done.isError, false, done.text);
   assert.match(done.text, /✅ Conectado/);
 });
 
